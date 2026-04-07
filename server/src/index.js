@@ -41,6 +41,15 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', server: 'MonCRM Node.js Server', time: new Date() });
 });
 
+// SERVIR LE FRONTEND (En production)
+const distPath = path.join(__dirname, '../../dist');
+app.use(express.static(distPath));
+
+// Fallback pour le SPA (React Router avec HashRouter ou BrowserRouter)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
