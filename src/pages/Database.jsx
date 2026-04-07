@@ -16,7 +16,8 @@ import {
   deleteProspect, 
   getImportHistory, 
   deleteImport,
-  updateImportOrder 
+  updateImportOrder,
+  bulkUpdateProspects
 } from '../services/api';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import ProspectTable from '../components/database/ProspectTable';
@@ -58,7 +59,6 @@ export default function Database() {
 
   const handleUpdate = async (id, data) => {
     try {
-      // On ne garde que les champs autorisés pour la mise à jour
       const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut'];
       const filteredData = {};
       allowedFields.forEach(field => {
@@ -70,6 +70,17 @@ export default function Database() {
     } catch (err) {
       console.error('Update error detailed:', err?.response?.data || err);
       alert('Erreur lors de la mise à jour : ' + (err.response?.data?.error || 'Vérifiez les données'));
+    }
+  };
+
+  const handleBulkUpdate = async (ids, data) => {
+    try {
+      await bulkUpdateProspects(ids, data);
+      setProspects(prev => prev.map(p => ids.includes(p.id) ? { ...p, ...data } : p));
+    } catch (err) {
+      console.error('Bulk update error:', err);
+      alert('Erreur lors de la mise à jour groupée');
+      loadData();
     }
   };
 
@@ -193,6 +204,7 @@ export default function Database() {
             <ProspectTable 
               prospects={prospects} 
               onUpdate={handleUpdate} 
+              onBulkUpdate={handleBulkUpdate}
               onDelete={handleDelete} 
             />
           )}

@@ -65,7 +65,75 @@ router.get('/stats', async (req, res) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
+    // Ajout des stats SMS quotidiennes
+    const today = new Date().toISOString().split('T')[0];
+    const { count: smsToday } = await supabase
+      .from('prospects')
+      .select('*', { count: 'exact', head: true })
+      .gte('sms_sent_at', `${today}T00:00:00`)
+      .lte('sms_sent_at', `${today}T23:59:59`);
+    
+    stats.smsToday = smsToday || 0;
+
     res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+const logActivity = async (prospectId, eventType, oldValue, newValue) => {
+  try {
+    await supabase.from('activity_logs').insert({
+      prospect_id: prospectId,
+      event_type: eventType,
+      old_value: oldValue,
+      new_value: newValue
+    });
+  } catch (err) {
+    console.error('Activity log error:', err);
+  }
+};
+
+// POST /api/prospects/bulk-update - Mise à jour massive (utilisé pour le drag-fill)
+router.post('/bulk-update', async (req, res) => {
+  const { ids, updates } = req.body;
+  
+  if (!ids || !ids.length) return res.status(400).json({ error: 'IDs manquants' });
+
+  try {
+    // 1. Récupérer les anciennes valeurs pour l'historique
+    const { data: oldData } = await supabase
+      .from('prospects')
+      .select('id, statut')
+      .in('id', ids);
+
+    const finalUpdates = { ...updates, updated_at: new Date().toISOString() };
+    
+    // Si on marque comme SMS envoyé, on ajoute le timestamp
+    if (updates.statut === 'sms_envoye') {
+      finalUpdates.sms_sent_at = new Date().toISOString();
+    }
+
+    const { data, error } = await supabase
+      .from('prospects')
+      .update(finalUpdates)
+      .in('id', ids)
+      .select();
+
+    if (error) throw error;
+
+    // 2. Logger les changements si le statut a été modifié
+    if (updates.statut && oldData) {
+      const logPromises = oldData.map(p => {
+        if (p.statut !== updates.statut) {
+          return logActivity(p.id, 'status_change', p.statut, updates.statut);
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(logPromises);
+    }
+
+    res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -80,9 +148,9 @@ router.get('/kanban', async (req, res) => {
     const columns = {
       a_contacter: [],
       sms_envoye: [],
-      maquette_demande: [],
-      maquette_envoye: [],
-      relance_appel: [],
+      maquette_demandee: [],
+      maquette_envoyee: [],
+      a_relancer: [],
       client_signe: []
     };
 
@@ -101,17 +169,40 @@ router.get('/kanban', async (req, res) => {
 // PATCH /api/prospects/:id - Mise à jour (ex: changement de statut)
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
-  const updates = { ...req.body, updated_at: new Date().toISOString() };
+  
+  try {
+    // 1. Récupérer l'ancien statut pour l'historique
+    const { data: oldProspect } = await supabase
+      .from('prospects')
+      .select('statut')
+      .eq('id', id)
+      .single();
 
-  const { data, error } = await supabase
-    .from('prospects')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
+    const updates = { ...req.body, updated_at: new Date().toISOString() };
+    
+    // Si on passe au statut SMS envoyé, on date l'envoi
+    if (req.body.statut === 'sms_envoye') {
+      updates.sms_sent_at = new Date().toISOString();
+    }
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+    const { data, error } = await supabase
+      .from('prospects')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // 2. Logger le changement de statut
+    if (req.body.statut && oldProspect && oldProspect.statut !== req.body.statut) {
+      await logActivity(id, 'status_change', oldProspect.statut, req.body.statut);
+    }
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // DELETE /api/prospects/:id

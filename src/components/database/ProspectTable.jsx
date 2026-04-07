@@ -12,13 +12,58 @@ import {
 } from 'lucide-react';
 import { STATUT_LABELS, STATUT_COLORS } from '../../utils/constants';
 
-export default function ProspectTable({ prospects, onUpdate, onDelete }) {
+export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDelete }) {
   const [editingId, setEditingId] = useState(null);
-  const [statusMenuId, setStatusMenuId] = useState(null); // Pour le menu de statut direct
+  const [statusMenuId, setStatusMenuId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const tableRef = useRef(null);
 
-  // Gérer le clic à l'extérieur pour fermer les menus/éditions
+  // DRAG TO FILL STATE
+  const [dragInfo, setDragInfo] = useState(null); // { startIdx, currentIdx, value }
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      if (isDragging && dragInfo) {
+        handleCompleteDrag();
+      }
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
+  }, [isDragging, dragInfo]);
+
+  const handleStartDrag = (e, index, value) => {
+    e.preventDefault();
+    setDragInfo({ startIdx: index, currentIdx: index, value });
+    setIsDragging(true);
+  };
+
+  const handleMouseEnterRow = (index) => {
+    if (isDragging) {
+      setDragInfo(prev => ({ ...prev, currentIdx: index }));
+    }
+  };
+
+  const handleCompleteDrag = async () => {
+    const { startIdx, currentIdx, value } = dragInfo;
+    setIsDragging(false);
+    setDragInfo(null);
+
+    if (startIdx === currentIdx) return;
+
+    const min = Math.min(startIdx, currentIdx);
+    const max = Math.max(startIdx, currentIdx);
+    
+    const idsToUpdate = prospects
+      .slice(min, max + 1)
+      .map(p => p.id);
+
+    if (idsToUpdate.length > 0) {
+      await onBulkUpdate(idsToUpdate, { statut: value });
+    }
+  };
+
+  // Gérer le clic à l'extérieur
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (editingId && tableRef.current && !tableRef.current.contains(event.target)) {
@@ -66,7 +111,7 @@ export default function ProspectTable({ prospects, onUpdate, onDelete }) {
   }
 
   return (
-    <div className="overflow-hidden transition-all duration-300">
+    <div className="overflow-hidden transition-all duration-300 relative select-none">
       <div className="overflow-x-auto no-scrollbar">
         <table ref={tableRef} className="w-full text-sm text-left border-collapse">
           <thead className="sticky top-0 z-20 bg-surface-950 shadow-[0_1px_0_rgba(255,255,255,0.05)]">
@@ -80,18 +125,28 @@ export default function ProspectTable({ prospects, onUpdate, onDelete }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-800/20">
-            {prospects.map((p) => {
+            {prospects.map((p, idx) => {
               const isEditing = editingId === p.id;
               const isStatusMenuOpen = statusMenuId === p.id;
               const statusColor = STATUT_COLORS[p.statut] || { bg: 'bg-surface-800', text: 'text-surface-400', dot: 'bg-surface-500' };
 
+              // Check if this row is being "filled" by drag
+              let isBeingFilled = false;
+              if (isDragging && dragInfo) {
+                const min = Math.min(dragInfo.startIdx, dragInfo.currentIdx);
+                const max = Math.max(dragInfo.startIdx, dragInfo.currentIdx);
+                isBeingFilled = idx >= min && idx <= max;
+              }
+
               return (
                 <tr 
                   key={p.id} 
-                  className={`hover:bg-surface-900/40 transition-colors group ${isEditing ? 'bg-primary-600/5 ring-1 ring-inset ring-primary-500/20' : ''}`}
+                  onMouseEnter={() => handleMouseEnterRow(idx)}
+                  className={`hover:bg-surface-900/40 transition-colors group relative ${isEditing ? 'bg-primary-600/5 ring-1 ring-inset ring-primary-500/20' : ''} ${isBeingFilled ? 'bg-primary-500/10' : ''}`}
                 >
                   {/* Nom Entreprise */}
                   <td className="px-4 py-3">
+                    {/* ... (Existing code for entreprise) ... */}
                     {isEditing ? (
                       <input 
                         autoFocus
@@ -138,9 +193,9 @@ export default function ProspectTable({ prospects, onUpdate, onDelete }) {
                     )}
                   </td>
 
-                  {/* Statut - ACCÈS DIRECT */}
-                  <td className="px-4 py-3 relative">
-                    <div className="status-selector">
+                  {/* Statut - ACCÈS DIRECT ET DRAG-FILL */}
+                  <td className={`px-4 py-3 relative ${isBeingFilled ? 'after:absolute after:inset-0 after:border-y-2 after:border-primary-500/50' : ''}`}>
+                    <div className="status-selector flex items-center gap-1">
                       {isStatusMenuOpen ? (
                         <div className="flex flex-col gap-1 p-1 bg-surface-950 border border-surface-800 rounded-xl shadow-2xl absolute left-0 top-1/2 -translate-y-1/2 z-50 min-w-[140px] animate-scale-in">
                           {Object.entries(STATUT_LABELS).map(([val, label]) => {
@@ -159,17 +214,25 @@ export default function ProspectTable({ prospects, onUpdate, onDelete }) {
                           })}
                         </div>
                       ) : (
-                        <div 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setStatusMenuId(p.id);
-                          }}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer hover:scale-105 transition-all active:scale-95 group/status relative
-                            ${statusColor.bg} ${statusColor.text}`}
-                        >
-                          <div className={`w-1.5 h-1.5 rounded-full ${statusColor.dot}`} />
-                          {STATUT_LABELS[p.statut] || p.statut}
-                          <ChevronDown className="w-2.5 h-2.5 ml-0.5 opacity-50 group-hover/status:opacity-100 transition-opacity" />
+                        <div className="relative group/drag">
+                          <div 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStatusMenuId(p.id);
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer hover:scale-105 transition-all active:scale-95 group/status relative
+                              ${statusColor.bg} ${statusColor.text} ${isBeingFilled ? 'ring-2 ring-primary-500' : ''}`}
+                          >
+                            <div className={`w-1.5 h-1.5 rounded-full ${statusColor.dot}`} />
+                            {isBeingFilled ? STATUT_LABELS[dragInfo.value] : (STATUT_LABELS[p.statut] || p.statut)}
+                            <ChevronDown className="w-2.5 h-2.5 ml-0.5 opacity-50 group-hover/status:opacity-100 transition-opacity" />
+                            
+                            {/* Drag Handle (Excel style) */}
+                            <div 
+                              onMouseDown={(e) => handleStartDrag(e, idx, p.statut)}
+                              className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary-500 rounded-sm cursor-ns-resize opacity-0 group-hover/drag:opacity-100 transition-opacity z-10 shadow-lg border border-white/20" 
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -230,14 +293,12 @@ export default function ProspectTable({ prospects, onUpdate, onDelete }) {
                           <button 
                             onClick={handleSave}
                             className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all font-bold"
-                            title="Enregistrer (Entrée)"
                           >
                             <Save className="w-4 h-4" />
                           </button>
                           <button 
                             onClick={handleCancelEdit}
                             className="p-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all font-bold"
-                            title="Annuler"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -250,14 +311,12 @@ export default function ProspectTable({ prospects, onUpdate, onDelete }) {
                                 handleStartEdit(p);
                             }}
                             className="p-1.5 rounded-lg hover:bg-surface-800 text-surface-500 hover:text-surface-200 transition-all opacity-0 group-hover:opacity-100"
-                            title="Modifier la ligne"
                           >
                             <MoreHorizontal className="w-4 h-4" />
                           </button>
                           <button 
                             onClick={() => onDelete(p.id)}
                             className="p-1.5 rounded-lg hover:bg-red-500/10 text-surface-600 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100"
-                            title="Supprimer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -271,6 +330,11 @@ export default function ProspectTable({ prospects, onUpdate, onDelete }) {
           </tbody>
         </table>
       </div>
+
+      {/* Visual Indicator for dragging across the entire table */}
+      {isDragging && (
+        <div className="fixed inset-0 z-40 cursor-ns-resize pointer-events-none" />
+      )}
     </div>
   );
 }

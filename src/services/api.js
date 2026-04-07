@@ -24,6 +24,11 @@ export const getKanbanData = () => api.get('/prospects/kanban');
 export const updateProspect = (id, data) => api.patch(`/prospects/${id}`, data);
 export const deleteProspect = (id) => api.delete(`/prospects/${id}`);
 export const bulkDeleteProspects = (ids) => api.delete('/prospects', { data: { ids } });
+export const bulkUpdateProspects = (ids, updates) => api.post('/prospects/bulk-update', { ids, updates });
+
+// Analytics
+export const getDailyReport = (days = 30) => api.get(`/analytics/daily-report?days=${days}`);
+export const getAnalyticsSummary = () => api.get('/analytics/summary');
 
 // Import
 export const uploadFile = (files, useFilter = true) => {

@@ -11,7 +11,8 @@ import {
   TrendingUp,
   LogOut,
   User,
-  ShieldCheck
+  ShieldCheck,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord', desc: 'Vue d\'ensemble' },
   { path: '/database', icon: Database, label: 'Base de données', desc: 'Gestion des prospects' },
   { path: '/pipeline', icon: TrendingUp, label: 'Pipeline', desc: 'Suivi des ventes' },
+  { path: '/analytics', icon: FileText, label: 'Bilan de jour', desc: 'Analyses & KPI' },
   { path: '/import', icon: Upload, label: 'Importation', desc: 'Ajouter des fichiers' },
   { path: '/marketing', icon: MessageSquare, label: 'SMS Marketing', desc: 'Campagnes groupées' },
   { path: '/planning', icon: Calendar, label: 'Planning', desc: 'Tâches & Rappels' },

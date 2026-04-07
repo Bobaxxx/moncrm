@@ -137,15 +137,27 @@ export default function Dashboard() {
           </div>
         ))}
 
-        {stats?.byStatut?.filter(s => s.statut === 'sms_envoye').map(s => (
-          <div key={s.statut} className="stat-card">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center mb-2">
-              <MessageSquare className="w-5 h-5 text-amber-400" />
-            </div>
-            <p className="text-3xl font-bold text-surface-50">{s.count}</p>
-            <p className="text-xs text-surface-500 font-medium">SMS envoyés</p>
+        <div className="stat-card">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center mb-2 relative">
+            <MessageSquare className="w-5 h-5 text-amber-400" />
+            {stats?.smsToday > 0 && (
+              <div className="absolute -top-1 -right-1 bg-amber-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-lg">
+                +{stats.smsToday}
+              </div>
+            )}
           </div>
-        ))}
+          <div className="flex items-baseline gap-2">
+            <p className="text-3xl font-bold text-surface-50">
+              {stats?.byStatut?.find(s => s.statut === 'sms_envoye')?.count || 0}
+            </p>
+            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-tight">
+              Total
+            </span>
+          </div>
+          <p className="text-xs text-surface-500 font-medium">
+            {stats?.smsToday || 0} envoyés aujourd'hui
+          </p>
+        </div>
 
         {stats?.byStatut?.filter(s => s.statut === 'client_signe').map(s => (
           <div key={s.statut} className="stat-card">

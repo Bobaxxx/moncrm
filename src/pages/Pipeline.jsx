@@ -146,42 +146,60 @@ export default function Pipeline() {
 
                 {/* Droppable area */}
                 <Droppable droppableId={statut}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`flex-1 space-y-2.5 min-h-[200px] rounded-xl p-1.5 transition-colors duration-200
-                        ${snapshot.isDraggingOver ? 'bg-primary-500/5 border border-dashed border-primary-500/20' : 'border border-transparent'}`}
-                    >
-                      {items.map((prospect, index) => (
-                        <Draggable
-                          key={prospect.id}
-                          draggableId={String(prospect.id)}
-                          index={index}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                            >
-                              <ProspectCard
-                                prospect={prospect}
-                                isDragging={snapshot.isDragging}
-                                onDelete={handleDelete}
-                              />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                      {items.length === 0 && (
-                        <div className="text-center py-8 text-surface-600 text-xs">
-                          Aucun prospect
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {(provided, snapshot) => {
+                    const isLimited = ['a_contacter', 'sms_envoye'].includes(statut);
+                    const displayItems = isLimited ? items.slice(0, 5) : items;
+                    const hiddenCount = isLimited && items.length > 5 ? items.length - 5 : 0;
+
+                    return (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`flex-1 space-y-2.5 min-h-[200px] rounded-xl p-1.5 transition-colors duration-200
+                          ${snapshot.isDraggingOver ? 'bg-primary-500/5 border border-dashed border-primary-500/20' : 'border border-transparent'}`}
+                      >
+                        {displayItems.map((prospect, index) => (
+                          <Draggable
+                            key={prospect.id}
+                            draggableId={String(prospect.id)}
+                            index={index}
+                          >
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                              >
+                                <ProspectCard
+                                  prospect={prospect}
+                                  isDragging={snapshot.isDragging}
+                                  onDelete={handleDelete}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+
+                        {hiddenCount > 0 && !search && (
+                          <div className="py-4 text-center bg-surface-900/40 rounded-xl border border-dashed border-surface-800/60">
+                             <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest italic">
+                                + {hiddenCount} autres prospects
+                             </p>
+                             <p className="text-[9px] text-surface-600 mt-1">
+                                Utilise la recherche pour les voir
+                             </p>
+                          </div>
+                        )}
+
+                        {items.length === 0 && (
+                          <div className="text-center py-8 text-surface-600 text-xs">
+                            Aucun prospect
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }}
                 </Droppable>
               </div>
             );

@@ -6,6 +6,7 @@ import Import from './pages/Import';
 import Dashboard from './pages/Dashboard';
 import Marketing from './pages/Marketing';
 import Planning from './pages/Planning';
+import Analytics from './pages/Analytics';
 import Login from './pages/Login';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -20,6 +21,7 @@ function AppContent() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/database" element={<Database />} />
           <Route path="/pipeline" element={<Pipeline />} />
+          <Route path="/analytics" element={<Analytics />} />
 
           <Route path="/import" element={<Import />} />
           <Route path="/marketing" element={<Marketing />} />
