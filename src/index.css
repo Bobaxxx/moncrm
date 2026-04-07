@@ -249,3 +249,20 @@
   }
 }
 
+@utility top-scrollbar {
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-surface-800);
+    border-radius: 10px;
+    border: 1px solid var(--color-surface-900);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-surface-700);
+  }
+}
+

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { RefreshCw, Search, Plus } from 'lucide-react';
 import ProspectCard from '../components/pipeline/ProspectCard';
@@ -15,6 +15,47 @@ export default function Pipeline() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedImport, setSelectedImport] = useState('');
   const [importHistory, setImportHistory] = useState([]);
+  
+  const containerRef = useRef(null);
+  const topScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (loading) return;
+    
+    const container = containerRef.current;
+    const topScroll = topScrollRef.current;
+    if (!container || !topScroll) return;
+
+    const syncTop = () => {
+      if (Math.abs(topScroll.scrollLeft - container.scrollLeft) > 1) {
+        topScroll.scrollLeft = container.scrollLeft;
+      }
+    };
+    const syncContainer = () => {
+      if (Math.abs(container.scrollLeft - topScroll.scrollLeft) > 1) {
+        container.scrollLeft = topScroll.scrollLeft;
+      }
+    };
+
+    container.addEventListener('scroll', syncTop);
+    topScroll.addEventListener('scroll', syncContainer);
+
+    const resizeObserver = new ResizeObserver(() => {
+      const scrollWidth = container.scrollWidth;
+      const dummyChild = topScroll.firstChild;
+      if (dummyChild) {
+        dummyChild.style.width = `${scrollWidth}px`;
+      }
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      container.removeEventListener('scroll', syncTop);
+      topScroll.removeEventListener('scroll', syncContainer);
+      resizeObserver.disconnect();
+    };
+  }, [loading, columns]); // Re-sync if columns/items change
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -197,9 +238,21 @@ export default function Pipeline() {
         </div>
       </div>
 
+      {/* Top Scrollbar for easier navigation */}
+      <div 
+        ref={topScrollRef}
+        className="overflow-x-auto overflow-y-hidden h-3 -mb-4 relative z-10 top-scrollbar"
+        style={{ width: 'calc(100% + 1rem)', margin: '0 -0.5rem -1rem' }}
+      >
+        <div style={{ height: '1px' }}></div>
+      </div>
+
       {/* Kanban board */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-6 -mx-2 px-2">
+        <div 
+          ref={containerRef}
+          className="flex gap-4 overflow-x-auto pb-6 -mx-2 px-2"
+        >
           {STATUT_ORDER.map(statut => {
             const items = filterProspects(columns[statut] || []);
             const colors = STATUT_COLORS[statut];

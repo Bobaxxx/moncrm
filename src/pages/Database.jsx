@@ -6,9 +6,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
-  Trash2,
+  Trash2, 
   Settings2,
-  GripHorizontal
+  GripHorizontal,
+  Smartphone
 } from 'lucide-react';
 import { 
   getProspects, 
@@ -83,6 +84,25 @@ export default function Database() {
       alert('Erreur lors de la mise à jour groupée');
       loadData();
     }
+  };
+
+  const handleBulkSmsStatus = async () => {
+    const toUpdate = prospects.filter(p => {
+      const cleanPhone = (p.telephone || '').replace(/[\s.-]/g, '');
+      const isSmsMobile = cleanPhone.startsWith('06') || cleanPhone.startsWith('07') || cleanPhone.startsWith('+336') || cleanPhone.startsWith('+337');
+      const isFacebook = p.source === 'facebook' || (p.url_site && p.url_site.toLowerCase().includes('facebook.com'));
+      return (isSmsMobile || isFacebook) && p.statut !== 'sms_envoye';
+    });
+
+    if (toUpdate.length === 0) {
+      alert("Aucun prospect éligible trouvé (doit avoir un Facebook ou un 06/07 et ne pas déjà être en 'SMS envoyé').");
+      return;
+    }
+
+    if (!confirm(`Passer ${toUpdate.length} prospects au statut 'SMS envoyé' ?`)) return;
+
+    const ids = toUpdate.map(p => p.id);
+    await handleBulkUpdate(ids, { statut: 'sms_envoye' });
   };
 
 
@@ -179,6 +199,15 @@ export default function Database() {
                 Supprimer la feuille
               </button>
             )}
+
+            <button 
+              onClick={handleBulkSmsStatus}
+              className="px-3 py-1.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-500 rounded-xl border border-amber-500/20 transition-all flex items-center gap-2 text-xs font-bold mr-2"
+              title="Passer en 'SMS envoyé' tous ceux qui ont Facebook ou un 06/07"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              Auto-Statut SMS
+            </button>
 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
