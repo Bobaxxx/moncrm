@@ -118,7 +118,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <div className="stat-card">
           <div className="w-10 h-10 rounded-xl bg-primary-600/20 flex items-center justify-center mb-2">
             <Users className="w-5 h-5 text-primary-400" />
@@ -156,6 +156,28 @@ export default function Dashboard() {
           </div>
           <p className="text-xs text-surface-500 font-medium">
             {stats?.smsToday || 0} envoyés aujourd'hui
+          </p>
+        </div>
+
+        <div className="stat-card">
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center mb-2 relative">
+            <TrendingUp className="w-5 h-5 text-cyan-400" />
+            {stats?.maquettesToday > 0 && (
+              <div className="absolute -top-1 -right-1 bg-cyan-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full animate-pulse shadow-lg">
+                +{stats.maquettesToday}
+              </div>
+            )}
+          </div>
+          <div className="flex items-baseline gap-2">
+            <p className="text-3xl font-bold text-surface-50">
+              {stats?.byStatut?.find(s => s.statut === 'maquette_envoyee')?.count || 0}
+            </p>
+            <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-tight">
+              Total
+            </span>
+          </div>
+          <p className="text-xs text-surface-500 font-medium">
+            {stats?.maquettesToday || 0} envoyées aujourd'hui
           </p>
         </div>
 

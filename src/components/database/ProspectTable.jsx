@@ -8,8 +8,10 @@ import {
   Save,
   X,
   Edit2,
-  ChevronDown
+  ChevronDown,
+  UserSearch
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { STATUT_LABELS, STATUT_COLORS } from '../../utils/constants';
 
 export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDelete }) {
@@ -305,6 +307,13 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                         </>
                       ) : (
                         <>
+                          <Link 
+                            to={`/prospect/${p.id}`}
+                            className="p-1.5 rounded-lg bg-primary-500/10 text-primary-400 hover:bg-primary-500/20 border border-primary-500/20 transition-all opacity-0 group-hover:opacity-100"
+                            title="Voir fiche client"
+                          >
+                            <UserSearch className="w-4 h-4" />
+                          </Link>
                           <button 
                             onClick={(e) => {
                                 e.stopPropagation();

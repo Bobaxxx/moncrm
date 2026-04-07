@@ -75,6 +75,16 @@ router.get('/stats', async (req, res) => {
     
     stats.smsToday = smsToday || 0;
 
+    // Ajout des stats Maquettes quotidiennes
+    const { count: maquettesToday } = await supabase
+      .from('activity_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_type', 'status_change')
+      .eq('new_value', 'maquette_envoyee')
+      .gte('created_at', `${today}T00:00:00.000Z`);
+    
+    stats.maquettesToday = maquettesToday || 0;
+
     res.json(stats);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -93,6 +103,37 @@ const logActivity = async (prospectId, eventType, oldValue, newValue) => {
     console.error('Activity log error:', err);
   }
 };
+
+// POST /api/prospects - Création manuelle
+router.post('/', async (req, res) => {
+  const { nom_entreprise, telephone, adresse, url_site, departement, statut, maquette_phone } = req.body;
+  
+  if (!nom_entreprise || !telephone) {
+    return res.status(400).json({ error: 'Nom et téléphone obligatoires' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('prospects')
+      .insert({
+        nom_entreprise,
+        telephone,
+        adresse,
+        url_site,
+        departement,
+        statut: statut || 'a_contacter',
+        maquette_phone,
+        source: 'manuel'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // POST /api/prospects/bulk-update - Mise à jour massive (utilisé pour le drag-fill)
 router.post('/bulk-update', async (req, res) => {
@@ -155,8 +196,9 @@ router.get('/kanban', async (req, res) => {
     };
 
     data.forEach(p => {
-      if (columns[p.statut]) {
-        columns[p.statut].push(p);
+      const status = p.statut || 'a_contacter';
+      if (columns[status]) {
+        columns[status].push(p);
       }
     });
 
@@ -205,13 +247,30 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/prospects/:id
-router.delete('/:id', async (req, res) => {
+// GET /api/prospects/:id - Détails d'un prospect
+router.get('/:id', async (req, res) => {
   const { id } = req.params;
-  const { error } = await supabase.from('prospects').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('prospects')
+    .select('*')
+    .eq('id', id)
+    .single();
 
   if (error) return res.status(500).json({ error: error.message });
-  res.json({ success: true });
+  res.json(data);
+});
+
+// GET /api/prospects/:id/logs - Historique d'un prospect
+router.get('/:id/logs', async (req, res) => {
+  const { id } = req.params;
+  const { data, error } = await supabase
+    .from('activity_logs')
+    .select('*')
+    .eq('prospect_id', id)
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
 export default router;

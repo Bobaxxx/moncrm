@@ -37,7 +37,8 @@ router.get('/daily-report', async (req, res) => {
     }
 
     data.forEach(log => {
-      const dateStr = log.created_at.split('T')[0];
+      const logDate = new Date(log.created_at);
+      const dateStr = logDate.toISOString().split('T')[0];
       if (report[dateStr] && report[dateStr][log.new_value] !== undefined) {
         report[dateStr][log.new_value]++;
       }
@@ -66,7 +67,7 @@ router.get('/summary', async (req, res) => {
 
         const summary = {
             sms: data.filter(l => l.new_value === 'sms_envoye').length,
-            maquettes: data.filter(l => l.new_value === 'maquette_demandee').length,
+            maquettes: data.filter(l => l.new_value === 'maquette_envoyee').length,
             signatures: data.filter(l => l.new_value === 'client_signe').length
         };
 

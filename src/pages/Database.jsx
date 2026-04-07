@@ -17,7 +17,8 @@ import {
   getImportHistory, 
   deleteImport,
   updateImportOrder,
-  bulkUpdateProspects
+  bulkUpdateProspects,
+  updateImportStatus
 } from '../services/api';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import ProspectTable from '../components/database/ProspectTable';
@@ -129,6 +130,16 @@ export default function Database() {
       await updateImportOrder(items.map(i => i.id));
     } catch (err) {
       console.error('Reorder error:', err);
+    }
+  };
+
+  const handleToggleImportStatus = async (e, id, currentStatus) => {
+    e.stopPropagation();
+    try {
+      await updateImportStatus(id, !currentStatus);
+      setImports(prev => prev.map(imp => imp.id === id ? { ...imp, is_completed: !currentStatus } : imp));
+    } catch (err) {
+      console.error('Toggle import status error:', err);
     }
   };
 
@@ -272,8 +283,18 @@ export default function Database() {
                                 } ${snapshot.isDragging ? 'shadow-2xl bg-surface-800 scale-105 z-50 rounded-lg' : ''}`}
                             >
                               <GripHorizontal className={`w-3 h-3 transition-opacity ${isActive ? 'opacity-50' : 'opacity-0 group-hover:opacity-30'}`} />
-                              <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-primary-500 animate-pulse' : 'bg-surface-700'}`} />
-                              <span className="max-w-[150px] truncate">{filename}</span>
+                              <div 
+                                onClick={(e) => handleToggleImportStatus(e, imp.id, imp.is_completed)}
+                                className={`w-2.5 h-2.5 rounded-full transition-all cursor-pointer border-2
+                                  ${imp.is_completed 
+                                    ? 'bg-emerald-500 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.4)]' 
+                                    : isActive ? 'bg-primary-500 border-primary-500/20 animate-pulse' : 'bg-surface-700 border-surface-600'
+                                  }`} 
+                                title={imp.is_completed ? "Feuille terminée" : "Cliquer pour terminer"}
+                              />
+                              <span className={`max-w-[150px] truncate ${imp.is_completed ? 'opacity-50 line-through decoration-emerald-500/30' : ''}`}>
+                                {filename}
+                              </span>
                               <span className={`text-[10px] font-bold ${isActive ? 'text-primary-600' : 'text-surface-600'}`}>
                                 ({imp.lignes_importees || 0})
                               </span>

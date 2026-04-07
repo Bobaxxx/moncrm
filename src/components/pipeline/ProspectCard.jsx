@@ -1,26 +1,12 @@
 import { useState } from 'react';
-import { Phone, MapPin, Globe, MessageSquare, GripVertical, ExternalLink, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Phone, MapPin, Globe, GripVertical, ExternalLink, ChevronDown, ChevronUp, Trash2, UserSearch, Smartphone } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { SOURCE_LABELS, SOURCE_BADGE_CLASS } from '../../utils/constants';
-import { generateSmsLink, deleteProspect } from '../../services/api';
+import { deleteProspect } from '../../services/api';
 
 export default function ProspectCard({ prospect, onUpdate, onDelete, isDragging }) {
   const [expanded, setExpanded] = useState(false);
-  const [smsData, setSmsData] = useState(null);
-  const [loadingSms, setLoadingSms] = useState(false);
 
-  const handleSmsGenerate = async (e) => {
-    e.stopPropagation();
-    setLoadingSms(true);
-    try {
-      const res = await generateSmsLink(prospect.id);
-      setSmsData(res.data);
-      window.open(res.data.smsLink, '_blank');
-    } catch (err) {
-      console.error('SMS error:', err);
-    } finally {
-      setLoadingSms(false);
-    }
-  };
 
   const handleDelete = async (e) => {
     e.stopPropagation();
@@ -60,19 +46,36 @@ export default function ProspectCard({ prospect, onUpdate, onDelete, isDragging 
             )}
           </div>
         </div>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-6 h-6 rounded-lg hover:bg-surface-700/50 flex items-center justify-center text-surface-500 hover:text-surface-300 transition-all"
-        >
-          {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
+        <div className="flex flex-col gap-1">
+          <Link 
+            to={`/prospect/${prospect.id}`}
+            className="w-7 h-7 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-400 hover:bg-primary-500/20 transition-all border border-primary-500/20"
+            title="Voir fiche client"
+          >
+            <UserSearch className="w-3.5 h-3.5" />
+          </Link>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-7 h-7 rounded-lg hover:bg-surface-700/50 flex items-center justify-center text-surface-500 hover:text-surface-300 transition-all"
+          >
+            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
       </div>
 
       {/* Phone */}
       {prospect.telephone && (
-        <div className="flex items-center gap-1.5 mt-2.5 text-xs text-surface-400">
-          <Phone className="w-3 h-3 text-surface-600" />
-          <span>{prospect.telephone}</span>
+        <div className="flex items-center justify-between mt-2.5">
+          <div className="flex items-center gap-1.5 text-xs text-surface-400">
+            <Phone className="w-3 h-3 text-surface-600" />
+            <span>{prospect.telephone}</span>
+          </div>
+          {prospect.maquette_phone && (
+            <div className="flex items-center gap-1 text-[10px] text-primary-400 font-bold bg-primary-500/5 px-2 py-0.5 rounded-full border border-primary-500/10">
+              <Smartphone className="w-2.5 h-2.5" />
+              {prospect.maquette_phone}
+            </div>
+          )}
         </div>
       )}
 
@@ -106,32 +109,13 @@ export default function ProspectCard({ prospect, onUpdate, onDelete, isDragging 
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-surface-800/40">
-        {prospect.statut === 'a_contacter' && (
-          <button
-            onClick={handleSmsGenerate}
-            disabled={loadingSms}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-              bg-primary-600/15 text-primary-400 hover:bg-primary-600/25 border border-primary-500/20 transition-all"
-            id={`sms-btn-${prospect.id}`}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            {loadingSms ? '...' : 'SMS'}
-          </button>
-        )}
-        <a
-          href={`tel:${prospect.telephone}`}
-          className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-            bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/20 transition-all"
-        >
-          <Phone className="w-3.5 h-3.5" />
-          Appeler
-        </a>
+      <div className="flex items-center justify-end gap-1.5 mt-3 pt-2.5 border-t border-surface-800/40">
         <button
           onClick={handleDelete}
-          className="w-7 h-7 flex items-center justify-center rounded-lg text-surface-600 hover:text-red-400 hover:bg-red-500/10 transition-all"
+          className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-600 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent hover:border-red-500/20"
+          title="Supprimer ce prospect"
         >
-          <Trash2 className="w-3.5 h-3.5" />
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>

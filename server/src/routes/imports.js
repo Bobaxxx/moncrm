@@ -216,6 +216,27 @@ router.patch('/reorder', async (req, res) => {
   }
 });
 
+router.patch('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { is_completed } = req.body;
+  
+  if (is_completed === undefined) return res.status(400).json({ error: 'Données manquantes' });
+
+  try {
+    const { data, error } = await supabase
+      .from('import_history')
+      .update({ is_completed })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    res.json({ success: true, data: data[0] });
+  } catch (error) {
+    console.error('Update import error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
   try {

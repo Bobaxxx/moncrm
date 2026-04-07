@@ -51,29 +51,29 @@ export default function Analytics() {
 
   const stats = [
     { 
+      label: 'Total Prospects', 
+      value: data.reduce((acc, curr) => acc + (curr.total || 0), 0), // Note: curr.total might not be there depending on backend
+      icon: Users,
+      color: 'text-primary-400',
+      bg: 'bg-primary-400/10'
+    },
+    { 
       label: 'SMS Envoyés', 
-      value: data.reduce((acc, curr) => acc + curr.sms_envoye, 0),
+      value: data.reduce((acc, curr) => acc + (curr.sms_envoye || 0), 0),
       icon: MessageSquare,
       color: 'text-amber-400',
       bg: 'bg-amber-400/10'
     },
     { 
-      label: 'Maquettes Demandées', 
-      value: data.reduce((acc, curr) => acc + curr.maquette_demandee, 0),
-      icon: FileText,
-      color: 'text-purple-400',
-      bg: 'bg-purple-400/10'
-    },
-    { 
       label: 'Maquettes Envoyées', 
-      value: data.reduce((acc, curr) => acc + curr.maquette_envoyee, 0),
+      value: data.reduce((acc, curr) => acc + (curr.maquette_envoyee || 0), 0),
       icon: TrendingUp,
       color: 'text-cyan-400',
       bg: 'bg-cyan-400/10'
     },
     { 
       label: 'Clients Signés', 
-      value: data.reduce((acc, curr) => acc + curr.client_signe, 0),
+      value: data.reduce((acc, curr) => acc + (curr.client_signe || 0), 0),
       icon: Users,
       color: 'text-emerald-400',
       bg: 'bg-emerald-400/10'
@@ -139,8 +139,8 @@ export default function Analytics() {
                   <stop offset="95%" stopColor="#fbbf24" stopOpacity={0}/>
                 </linearGradient>
                 <linearGradient id="colorMaquette" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#22d3ee" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
@@ -173,10 +173,10 @@ export default function Analytics() {
                 fill="url(#colorSms)" 
               />
               <Area 
-                name="Demandes Maquettes"
+                name="Maquettes Envoyées"
                 type="monotone" 
-                dataKey="maquette_demandee" 
-                stroke="#a855f7" 
+                dataKey="maquette_envoyee" 
+                stroke="#22d3ee" 
                 strokeWidth={3}
                 fillOpacity={1} 
                 fill="url(#colorMaquette)" 
@@ -199,7 +199,7 @@ export default function Analytics() {
                    <tr>
                       <th className="px-6 py-3">Date</th>
                       <th className="px-6 py-3 text-amber-400">SMS</th>
-                      <th className="px-6 py-3 text-purple-400">Maquettes</th>
+                      <th className="px-6 py-3 text-cyan-400">Maquettes Env.</th>
                       <th className="px-6 py-3 text-emerald-400">Signatures</th>
                    </tr>
                 </thead>
@@ -210,7 +210,7 @@ export default function Analytics() {
                             {new Date(row.date).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
                          </td>
                          <td className="px-6 py-3 font-bold text-surface-200">{row.sms_envoye || '-'}</td>
-                         <td className="px-6 py-3 font-bold text-surface-200">{row.maquette_demandee || '-'}</td>
+                         <td className="px-6 py-3 font-bold text-surface-200">{row.maquette_envoyee || '-'}</td>
                          <td className="px-6 py-3 text-emerald-400 font-bold">{row.client_signe || '-'}</td>
                       </tr>
                    ))}
@@ -231,23 +231,44 @@ export default function Analytics() {
             </div>
             
             <div className="glass-card p-6">
-                <h4 className="text-sm font-bold text-surface-300 mb-4">Objectifs suggérés</h4>
+                <h4 className="text-sm font-bold text-surface-300 mb-4">Objectifs quotidiens</h4>
                 <div className="space-y-3">
-                    <div className="flex items-center justify-between text-xs">
-                        <span className="text-surface-500">Objectif SMS Quotidien</span>
-                        <span className="text-surface-200 font-bold">50 / 100</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-surface-800 rounded-full">
-                        <div className="h-full bg-amber-500 rounded-full" style={{ width: '50%' }} />
-                    </div>
-                    
-                    <div className="flex items-center justify-between text-xs mt-4">
-                        <span className="text-surface-500">Taux conversion Maquette</span>
-                        <span className="text-surface-200 font-bold">12%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-surface-800 rounded-full">
-                        <div className="h-full bg-purple-500 rounded-full" style={{ width: '12%' }} />
-                    </div>
+                    {(() => {
+                        const todayData = data[data.length - 1] || {};
+                        const smsValue = todayData.sms_envoye || 0;
+                        const smsGoal = 150;
+                        const smsPercent = Math.min(Math.round((smsValue / smsGoal) * 100), 100);
+                        
+                        const maquetteValue = todayData.maquette_envoyee || 0;
+                        const maquetteGoal = 10; // Par exemple
+                        const maquettePercent = Math.min(Math.round((maquetteValue / maquetteGoal) * 100), 100);
+
+                        return (
+                          <>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-surface-500">Objectif SMS (Aujourd'hui)</span>
+                                <span className="text-surface-200 font-bold">{smsValue} / {smsGoal}</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-surface-800 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-amber-500 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(245,158,11,0.4)]" 
+                                  style={{ width: `${smsPercent}%` }} 
+                                />
+                            </div>
+                            
+                            <div className="flex items-center justify-between text-xs mt-4">
+                                <span className="text-surface-500">Objectif Maquettes (Aujourd'hui)</span>
+                                <span className="text-surface-200 font-bold">{maquetteValue} / {maquetteGoal}</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-surface-800 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-cyan-500 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(34,211,238,0.4)]" 
+                                  style={{ width: `${maquettePercent}%` }} 
+                                />
+                            </div>
+                          </>
+                        );
+                    })()}
                 </div>
             </div>
         </div>

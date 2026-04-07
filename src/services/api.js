@@ -18,9 +18,12 @@ api.interceptors.request.use(async (config) => {
 });
 
 // Prospects
+export const getProspectDetail = (id) => api.get(`/prospects/${id}`);
+export const getProspectLogs = (id) => api.get(`/prospects/${id}/logs`);
 export const getProspects = (params) => api.get('/prospects', { params });
 export const getProspectStats = () => api.get('/prospects/stats');
 export const getKanbanData = () => api.get('/prospects/kanban');
+export const createProspect = (data) => api.post('/prospects', data);
 export const updateProspect = (id, data) => api.patch(`/prospects/${id}`, data);
 export const deleteProspect = (id) => api.delete(`/prospects/${id}`);
 export const bulkDeleteProspects = (ids) => api.delete('/prospects', { data: { ids } });
@@ -62,6 +65,7 @@ export const getImportHistory = () => api.get('/imports');
 export const deleteImport = (id) => api.delete(`/imports/${id}`);
 export const bulkDeleteImports = (ids) => api.post('/imports/bulk-delete', { ids });
 export const updateImportOrder = (ids) => api.patch('/imports/reorder', { ids });
+export const updateImportStatus = (id, is_completed) => api.patch(`/imports/${id}`, { is_completed });
 
 // SMS
 export const getSmsTemplates = () => api.get('/sms/templates');
