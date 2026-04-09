@@ -75,7 +75,14 @@ router.post('/', async (req, res) => {
 // PATCH /api/planning/:id
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
-  const updates = { ...req.body };
+  const { 
+    id: _id, 
+    created_at, 
+    prospect_nom, 
+    prospect_tel, 
+    prospects,
+    ...updates 
+  } = req.body;
 
   const { data, error } = await supabase
     .from('planning_tasks')

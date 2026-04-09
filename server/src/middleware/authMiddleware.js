@@ -23,6 +23,14 @@ export const requireAuth = async (req, res, next) => {
 
     // On attache l'utilisateur à la requête pour usage ultérieur
     req.user = user;
+
+    // SÉCURITÉ SUPPLÉMENTAIRE : Vérifier si l'email est autorisé
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (adminEmail && user.email !== adminEmail) {
+      console.warn(`🛑 Tentative d'accès non autorisé par : ${user.email}`);
+      return res.status(403).json({ error: 'Accès interdit. Cet utilisateur n\'a pas les droits administrateur.' });
+    }
+
     next();
   } catch (err) {
     console.error('Auth middleware error:', err);

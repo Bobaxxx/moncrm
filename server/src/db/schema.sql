@@ -74,5 +74,27 @@ CREATE TABLE IF NOT EXISTS activity_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Index pour les journaux d'activité
 CREATE INDEX IF NOT EXISTS idx_activity_prospect ON activity_logs(prospect_id);
 CREATE INDEX IF NOT EXISTS idx_activity_date ON activity_logs(created_at);
+
+-- ==========================================
+-- SÉCURITÉ (Row Level Security)
+-- ==========================================
+
+-- 1. Activation de la RLS pour toutes les tables
+ALTER TABLE import_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE prospects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sms_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE planning_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
+
+-- 2. Politiques d'accès restrictives
+-- Bloque tout accès public (anon).
+-- Autorise uniquement les utilisateurs authentifiés.
+
+CREATE POLICY "Auth access only" ON import_history FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Auth access only" ON prospects FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Auth access only" ON sms_templates FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Auth access only" ON planning_tasks FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Auth access only" ON activity_logs FOR ALL TO authenticated USING (true) WITH CHECK (true);

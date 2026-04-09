@@ -4,6 +4,7 @@ export const STATUT_LABELS = {
   maquette_demandee: 'Maquette demandée',
   maquette_envoyee: 'Maquette envoyée',
   a_relancer: 'À relancer par appel',
+  interese: 'Prospect intéréssé/pas laché',
   client_signe: 'Client signé'
 };
 
@@ -13,6 +14,7 @@ export const STATUT_COLORS = {
   maquette_demandee: { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/40', dot: 'bg-purple-400' },
   maquette_envoyee: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/40', dot: 'bg-cyan-400' },
   a_relancer: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/40', dot: 'bg-orange-400' },
+  interese: { bg: 'bg-indigo-500/20', text: 'text-indigo-400', border: 'border-indigo-500/40', dot: 'bg-indigo-400' },
   client_signe: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40', dot: 'bg-emerald-400' }
 };
 
@@ -40,5 +42,6 @@ export const STATUT_ORDER = [
   'maquette_demandee',
   'maquette_envoyee',
   'a_relancer',
+  'interese',
   'client_signe'
 ];

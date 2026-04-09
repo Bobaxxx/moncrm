@@ -318,21 +318,31 @@ export default function Planning() {
           task={editingTask}
           onClose={() => { setShowModal(false); setEditingTask(null); }}
           onSave={async (data) => {
-            if (data.id) {
-              const res = await updatePlanningTask(data.id, data);
-              setTasks(prev => prev.map(t => t.id === data.id ? res.data : t));
-            } else {
-              const res = await createPlanningTask(data);
-              setTasks(prev => [...prev, res.data]);
+            try {
+              if (data.id) {
+                const res = await updatePlanningTask(data.id, data);
+                setTasks(prev => prev.map(t => t.id === data.id ? res.data : t));
+              } else {
+                const res = await createPlanningTask(data);
+                setTasks(prev => [...prev, res.data]);
+              }
+              setShowModal(false);
+              setEditingTask(null);
+            } catch (err) {
+              console.error('Error saving task:', err);
+              alert('Erreur lors de l\'enregistrement de la tâche. Veuillez réessayer.');
             }
-            setShowModal(false);
-            setEditingTask(null);
           }}
           onDelete={async (id) => {
-            await deletePlanningTask(id);
-            setTasks(prev => prev.filter(t => t.id !== id));
-            setShowModal(false);
-            setEditingTask(null);
+            try {
+              await deletePlanningTask(id);
+              setTasks(prev => prev.filter(t => t.id !== id));
+              setShowModal(false);
+              setEditingTask(null);
+            } catch (err) {
+              console.error('Error deleting task:', err);
+              alert('Erreur lors de la suppression de la tâche.');
+            }
           }}
         />
       )}
