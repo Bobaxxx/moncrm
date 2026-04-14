@@ -5,7 +5,8 @@ export const STATUT_LABELS = {
   maquette_envoyee: 'Maquette envoyée',
   a_relancer: 'À relancer par appel',
   interese: 'Prospect intéréssé/pas laché',
-  client_signe: 'Client signé'
+  client_signe: 'Client signé',
+  pas_de_budget: 'Futur potentiel (pas de budget)'
 };
 
 export const STATUT_COLORS = {
@@ -15,7 +16,8 @@ export const STATUT_COLORS = {
   maquette_envoyee: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/40', dot: 'bg-cyan-400' },
   a_relancer: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/40', dot: 'bg-orange-400' },
   interese: { bg: 'bg-indigo-500/20', text: 'text-indigo-400', border: 'border-indigo-500/40', dot: 'bg-indigo-400' },
-  client_signe: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40', dot: 'bg-emerald-400' }
+  client_signe: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40', dot: 'bg-emerald-400' },
+  pas_de_budget: { bg: 'bg-rose-500/20', text: 'text-rose-400', border: 'border-rose-500/40', dot: 'bg-rose-400' }
 };
 
 export const SOURCE_LABELS = {
@@ -43,5 +45,6 @@ export const STATUT_ORDER = [
   'maquette_envoyee',
   'a_relancer',
   'interese',
+  'pas_de_budget',
   'client_signe'
 ];

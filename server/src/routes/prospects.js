@@ -193,6 +193,7 @@ router.get('/kanban', async (req, res) => {
       maquette_envoyee: [],
       a_relancer: [],
       interese: [],
+      pas_de_budget: [],
       client_signe: []
     };
 
