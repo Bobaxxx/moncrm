@@ -39,6 +39,44 @@ export default function Database() {
   });
 
   const scrollRef = useRef(null);
+  const [scrollPercent, setScrollPercent] = useState(0);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  const checkOverflow = useCallback(() => {
+    if (scrollRef.current) {
+      const { scrollWidth, clientWidth } = scrollRef.current;
+      setHasOverflow(scrollWidth > clientWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [checkOverflow, imports]);
+
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      const maxScroll = scrollWidth - clientWidth;
+      if (maxScroll > 0) {
+        setScrollPercent((scrollLeft / maxScroll) * 100);
+      }
+    }
+  };
+
+  const handleSliderChange = (e) => {
+    const val = parseFloat(e.target.value);
+    setScrollPercent(val);
+    if (scrollRef.current) {
+      const { scrollWidth, clientWidth } = scrollRef.current;
+      const maxScroll = scrollWidth - clientWidth;
+      // On retire temporairement le smooth pour que ce soit instantané avec le slider
+      scrollRef.current.style.scrollBehavior = 'auto';
+      scrollRef.current.scrollLeft = (val / 100) * maxScroll;
+      scrollRef.current.style.scrollBehavior = 'smooth';
+    }
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -304,6 +342,22 @@ export default function Database() {
             <button onClick={() => scrollTabs('left')} className="p-1 hover:bg-surface-800 rounded transition-colors text-surface-500">
               <ChevronLeft className="w-4 h-4" />
             </button>
+            
+            {hasOverflow && (
+              <div className="w-32 mx-2 flex items-center group">
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  step="0.1"
+                  value={scrollPercent}
+                  onChange={handleSliderChange}
+                  className="w-full h-1.5 bg-surface-800 rounded-lg appearance-none cursor-pointer accent-primary-500 hover:accent-primary-400 transition-all opacity-40 group-hover:opacity-100"
+                  title="Défilement rapide"
+                />
+              </div>
+            )}
+
             <button onClick={() => scrollTabs('right')} className="p-1 hover:bg-surface-800 rounded transition-colors text-surface-500">
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -311,7 +365,16 @@ export default function Database() {
 
           <div 
             ref={scrollRef}
-            className="flex-1 flex items-end h-full overflow-x-auto no-scrollbar scroll-smooth gap-0 px-2"
+            onScroll={handleScroll}
+            onWheel={(e) => {
+              if (scrollRef.current) {
+                // On retire temporairement le smooth pour la molette
+                scrollRef.current.style.scrollBehavior = 'auto';
+                scrollRef.current.scrollLeft += e.deltaY;
+                scrollRef.current.style.scrollBehavior = 'smooth';
+              }
+            }}
+            className="flex-1 flex items-end h-full overflow-x-auto sleek-scrollbar-x scroll-smooth gap-0 px-2 pb-1"
           >
             <div
               onClick={() => handleFilterChange('import_id', '')}

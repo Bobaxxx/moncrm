@@ -266,3 +266,21 @@
   }
 }
 
+@utility sleek-scrollbar-x {
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-surface-700);
+    border-radius: 10px;
+    border: 1px solid transparent;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary-500);
+  }
+}
+
