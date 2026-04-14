@@ -242,22 +242,22 @@ export default function ClientDetail() {
             <div className="space-y-6 overflow-y-auto pr-2 relative flex-1 no-scrollbar">
               <div className="absolute left-4 top-2 bottom-2 w-[2px] bg-surface-800/60" />
               
-              {logs.length === 0 ? (
+              {(!logs || !Array.isArray(logs) || logs.length === 0) ? (
                 <div className="text-center py-10 text-surface-600 italic">
                   Aucun historique disponible
                 </div>
               ) : (
-                logs.map((log, i) => (
-                  <div key={log.id} className="relative pl-10 animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
+                logs.filter(Boolean).map((log, i) => (
+                  <div key={log.id || i} className="relative pl-10 animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
                     <div className="absolute left-2.5 top-1.5 w-3 h-3 rounded-full bg-surface-700 border-2 border-surface-900 z-10" />
                     <div className="space-y-1">
                       <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">
-                        {new Date(log.created_at).toLocaleString('fr-FR', {
+                        {log.created_at ? new Date(log.created_at).toLocaleString('fr-FR', {
                           day: '2-digit',
                           month: 'short',
                           hour: '2-digit',
                           minute: '2-digit'
-                        })}
+                        }) : 'Date inconnue'}
                       </p>
                       <div className="text-xs text-surface-300">
                         {log.event_type === 'status_change' ? (
@@ -265,7 +265,7 @@ export default function ClientDetail() {
                             Statut modifié de <span className="font-bold text-surface-400">{STATUT_LABELS[log.old_value] || log.old_value || '—'}</span> à <span className="font-bold text-primary-400">{STATUT_LABELS[log.new_value] || log.new_value || '—'}</span>
                           </span>
                         ) : (
-                          <span>{log.event_type}: {log.new_value}</span>
+                          <span>{log.event_type || 'Action'}: {log.new_value || '—'}</span>
                         )}
                       </div>
                     </div>
@@ -274,20 +274,22 @@ export default function ClientDetail() {
               )}
               
               {/* Added Event */}
-              <div className="relative pl-10 opacity-50">
-                <div className="absolute left-2.5 top-1.5 w-3 h-3 rounded-full bg-primary-900 border-2 border-surface-900 z-10" />
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">
-                    {new Date(prospect.created_at).toLocaleString('fr-FR', {
-                      day: '2-digit',
-                      month: 'short'
-                    })}
-                  </p>
-                  <div className="text-xs">
-                    Prospect ajouté à la base
+              {prospect?.created_at && (
+                <div className="relative pl-10 opacity-50">
+                  <div className="absolute left-2.5 top-1.5 w-3 h-3 rounded-full bg-primary-900 border-2 border-surface-900 z-10" />
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest">
+                      {new Date(prospect.created_at).toLocaleString('fr-FR', {
+                        day: '2-digit',
+                        month: 'short'
+                      })}
+                    </p>
+                    <div className="text-xs">
+                      Prospect ajouté à la base
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
