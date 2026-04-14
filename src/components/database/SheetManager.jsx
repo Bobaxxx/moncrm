@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2, CheckSquare, Square, FileText, Calendar, Users, GripVertical } from 'lucide-react';
-import { bulkDeleteImports, updateImportOrder } from '../../services/api';
+import { X, Trash2, CheckSquare, Square, FileText, Calendar, Users, GripVertical, Layers } from 'lucide-react';
+import { bulkDeleteImports, updateImportOrder, updateImport } from '../../services/api';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 export default function SheetManager({ imports: initialImports, onClose, onRefresh }) {
   const [imports, setImports] = useState(initialImports);
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
 
   useEffect(() => {
     setImports(initialImports);
@@ -64,6 +65,23 @@ export default function SheetManager({ imports: initialImports, onClose, onRefre
     }
   };
 
+  const handleMoveToCategory = async () => {
+    if (selectedIds.length === 0 || !newCategory.trim()) return;
+    setLoading(true);
+    try {
+      const updates = selectedIds.map(id => updateImport(id, { category: newCategory.trim() }));
+      await Promise.all(updates);
+      setNewCategory('');
+      setSelectedIds([]);
+      onRefresh();
+    } catch (err) {
+      console.error('Move error:', err);
+      alert('Erreur lors du déplacement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-950/80 backdrop-blur-sm animate-fade-in">
       <div className="glass-card w-full max-w-2xl flex flex-col max-h-[85vh] shadow-[0_0_50px_rgba(0,0,0,0.5)] border-surface-700/50">
@@ -100,6 +118,25 @@ export default function SheetManager({ imports: initialImports, onClose, onRefre
             <GripVertical className="w-3 h-3" />
             Glisser pour ordonner
           </div>
+
+          {selectedIds.length > 0 && (
+            <div className="flex items-center gap-2 p-1.5 bg-primary-500/10 rounded-lg animate-fade-in">
+              <input 
+                type="text" 
+                placeholder="Nouveau dossier..." 
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                className="text-[10px] bg-surface-950 border border-surface-700/50 rounded-md px-2 py-1 outline-none focus:border-primary-500 w-32"
+              />
+              <button 
+                onClick={handleMoveToCategory}
+                disabled={loading || !newCategory.trim()}
+                className="text-[10px] font-bold text-primary-400 hover:text-primary-300 uppercase tracking-wider disabled:opacity-30"
+              >
+                 Déplacer
+              </button>
+            </div>
+          )}
         </div>
 
         {/* List with Drag & Drop */}
@@ -153,6 +190,10 @@ export default function SheetManager({ imports: initialImports, onClose, onRefre
                                  <span className="flex items-center gap-1.2">
                                     <Users className="w-3 h-3" />
                                     {imp.lignes_importees} prospects
+                                 </span>
+                                 <span className="flex items-center gap-1.2 text-primary-400">
+                                    <Layers className="w-3 h-3" />
+                                    {imp.category || 'Serrurier'}
                                  </span>
                               </div>
                             </div>

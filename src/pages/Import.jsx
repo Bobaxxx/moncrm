@@ -21,6 +21,7 @@ export default function Import() {
   const [useFilter, setUseFilter] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [category, setCategory] = useState('Serrurier');
   const [step, setStep] = useState(1); // 1: Drop, 2: Preview, 3: Success
 
   // Re-déclencher la preview quand 'useFilter' change en étape 2
@@ -55,7 +56,7 @@ export default function Import() {
     setLoading(true);
     setError(null);
     try {
-      await uploadFile(files, useFilter);
+      await uploadFile(files, useFilter, { category });
       setStep(3);
     } catch (err) {
       setError("Une erreur est survenue lors de l'importation vers la base de données.");
@@ -127,6 +128,18 @@ export default function Import() {
                  <div className="ml-2">
                     {useFilter ? <ToggleRight className="w-7 h-7 text-primary-500" /> : <ToggleLeft className="w-7 h-7 text-surface-600" />}
                  </div>
+              </div>
+
+              {/* Nouveau: Champ Catégorie */}
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="text-[10px] uppercase font-bold text-surface-500 tracking-widest ml-1">Dossier / Catégorie</label>
+                <input 
+                  type="text" 
+                  placeholder="Ex: Serruriers, Menuisiers..." 
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="input-field py-3 text-sm bg-surface-900 shadow-xl w-full"
+                />
               </div>
 
               <button 

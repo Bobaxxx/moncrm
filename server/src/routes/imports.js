@@ -117,6 +117,7 @@ const processFile = async (file, useFilter = true) => {
 router.post('/upload', upload.array('files'), async (req, res) => {
   if (!req.files || req.files.length === 0) return res.status(400).json({ error: 'Fichiers manquants' });
   const useFilter = req.body.useFilter === 'true';
+  const category = req.body.category || 'Serrurier';
 
   try {
     const results = [];
@@ -132,7 +133,8 @@ router.post('/upload', upload.array('files'), async (req, res) => {
           total_lignes: stats.total,
           lignes_importees: stats.imported,
           lignes_filtrees: stats.filtered,
-          doublons_ignores: 0
+          doublons_ignores: 0,
+          category
         })
         .select()
         .single();
@@ -218,14 +220,18 @@ router.patch('/reorder', async (req, res) => {
 
 router.patch('/:id', async (req, res) => {
   const { id } = req.params;
-  const { is_completed } = req.body;
+  const { is_completed, category } = req.body;
   
-  if (is_completed === undefined) return res.status(400).json({ error: 'Données manquantes' });
+  if (is_completed === undefined && category === undefined) return res.status(400).json({ error: 'Données manquantes' });
 
   try {
+    const updateData = {};
+    if (is_completed !== undefined) updateData.is_completed = is_completed;
+    if (category !== undefined) updateData.category = category;
+
     const { data, error } = await supabase
       .from('import_history')
-      .update({ is_completed })
+      .update(updateData)
       .eq('id', id)
       .select();
 

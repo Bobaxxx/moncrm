@@ -41,6 +41,7 @@ export default function Database() {
   const scrollRef = useRef(null);
   const [scrollPercent, setScrollPercent] = useState(0);
   const [hasOverflow, setHasOverflow] = useState(false);
+  const [activeCategory, setActiveCategory] = useState(null);
 
   const checkOverflow = useCallback(() => {
     if (scrollRef.current) {
@@ -86,7 +87,14 @@ export default function Database() {
         getImportHistory()
       ]);
       setProspects(prospectsRes.data || []);
-      setImports(importsRes.data || []);
+      const fetchedImports = importsRes.data || [];
+      setImports(fetchedImports);
+      
+      // Auto-sélection de la première catégorie si aucune n'est sélectionnée
+      if (!activeCategory && fetchedImports.length > 0) {
+        const categories = [...new Set(fetchedImports.map(i => i.category || 'Serrurier'))];
+        if (categories.length > 0) setActiveCategory(categories[0]);
+      }
     } catch (err) {
       console.error('Database load error:', err);
     } finally {
@@ -363,6 +371,24 @@ export default function Database() {
             </button>
           </div>
 
+          {/* Filtre par Dossier/Catégorie */}
+          <div className="flex items-center gap-1 border-r border-surface-800 px-2 mr-2 overflow-x-auto no-scrollbar max-w-[300px]">
+            {[...new Set(imports.map(i => i.category || 'Serrurier'))].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all whitespace-nowrap flex items-center gap-1.5
+                  ${activeCategory === cat 
+                    ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30' 
+                    : 'bg-surface-800/40 text-surface-500 hover:text-surface-300 border border-transparent'
+                  }`}
+              >
+                <Layers className="w-3 h-3" />
+                {cat}
+              </button>
+            ))}
+          </div>
+
           <div 
             ref={scrollRef}
             onScroll={handleScroll}
@@ -396,7 +422,9 @@ export default function Database() {
                     ref={provided.innerRef}
                     className="flex items-end h-full"
                   >
-                    {imports.map((imp, index) => {
+                    {imports
+                      .filter(imp => (imp.category || 'Serrurier') === activeCategory)
+                      .map((imp, index) => {
                       const isActive = filters.import_id.toString() === imp.id.toString();
                       const filename = (imp.filename || 'Import').replace('.csv', '').replace('.json', '');
                       

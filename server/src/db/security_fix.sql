@@ -2,6 +2,11 @@
 -- Ce script active la RLS et bloque tout accès public.
 -- Seuls les utilisateurs connectés ou le serveur backend peuvent accéder aux données.
 
+-- ADDED: Colonnes pour la catégorisation (Folders)
+ALTER TABLE import_history ADD COLUMN IF NOT EXISTS is_completed BOOLEAN DEFAULT FALSE;
+ALTER TABLE import_history ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
+ALTER TABLE import_history ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Serrurier';
+
 -- 1. Nettoyage (optionnel, au cas où des politiques existeraient déjà)
 DROP POLICY IF EXISTS "Enable all for authenticated users" ON import_history;
 DROP POLICY IF EXISTS "Enable all for authenticated users" ON prospects;

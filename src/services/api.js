@@ -34,7 +34,7 @@ export const getDailyReport = (days = 30) => api.get(`/analytics/daily-report?da
 export const getAnalyticsSummary = () => api.get('/analytics/summary');
 
 // Import
-export const uploadFile = (files, useFilter = true) => {
+export const uploadFile = (files, useFilter = true, reqData = {}) => {
   const formData = new FormData();
   if (Array.isArray(files)) {
     files.forEach(f => formData.append('files', f));
@@ -42,6 +42,9 @@ export const uploadFile = (files, useFilter = true) => {
     formData.append('files', files);
   }
   formData.append('useFilter', useFilter);
+  if (reqData && reqData.category) {
+    formData.append('category', reqData.category);
+  }
   return api.post('/imports/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
@@ -66,6 +69,7 @@ export const deleteImport = (id) => api.delete(`/imports/${id}`);
 export const bulkDeleteImports = (ids) => api.post('/imports/bulk-delete', { ids });
 export const updateImportOrder = (ids) => api.patch('/imports/reorder', { ids });
 export const updateImportStatus = (id, is_completed) => api.patch(`/imports/${id}`, { is_completed });
+export const updateImport = (id, data) => api.patch(`/imports/${id}`, data);
 
 // SMS
 export const getSmsTemplates = () => api.get('/sms/templates');

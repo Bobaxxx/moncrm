@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS import_history (
   lignes_importees INTEGER DEFAULT 0,
   lignes_filtrees INTEGER DEFAULT 0,
   doublons_ignores INTEGER DEFAULT 0,
+  is_completed BOOLEAN DEFAULT FALSE,
+  sort_order INTEGER DEFAULT 0,
+  category TEXT DEFAULT 'Serrurier',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
