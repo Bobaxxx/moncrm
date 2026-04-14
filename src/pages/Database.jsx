@@ -9,7 +9,8 @@ import {
   Trash2, 
   Settings2,
   GripHorizontal,
-  Smartphone
+  Smartphone,
+  Download
 } from 'lucide-react';
 import { 
   getProspects, 
@@ -173,6 +174,36 @@ export default function Database() {
     }
   };
 
+  const handleDownloadCsv = () => {
+    if (prospects.length === 0) {
+      alert("Aucune donnée à exporter");
+      return;
+    }
+
+    const headers = ["Entreprise", "Telephone", "Statut", "Ville", "Adresse", "Site Web"];
+    const csvRows = [
+      headers.join(','),
+      ...prospects.map(p => [
+        `"${(p.nom_entreprise || '').replace(/"/g, '""')}"`,
+        `"${(p.telephone || '').replace(/"/g, '""')}"`,
+        `"${(STATUT_LABELS[p.statut] || p.statut || '').replace(/"/g, '""')}"`,
+        `"${(p.departement || '').replace(/"/g, '""')}"`,
+        `"${(p.adresse || '').replace(/"/g, '""')}"`,
+        `"${(p.url_site || '').replace(/"/g, '""')}"`
+      ].join(','))
+    ];
+
+    const blob = new Blob(["\ufeff" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `export_prospects_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col gap-4 animate-fade-in relative">
       {/* Header & Global Filters */}
@@ -207,6 +238,15 @@ export default function Database() {
             >
               <Smartphone className="w-3.5 h-3.5" />
               Auto-Statut SMS
+            </button>
+
+            <button 
+              onClick={handleDownloadCsv}
+              className="px-3 py-1.5 bg-primary-600/10 hover:bg-primary-600/20 text-primary-400 rounded-xl border border-primary-500/20 transition-all flex items-center gap-2 text-xs font-bold mr-2"
+              title="Exporter les données actuelles (filtres inclus) en CSV"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Exporter
             </button>
 
             <div className="relative">
