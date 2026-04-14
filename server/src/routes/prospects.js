@@ -261,17 +261,41 @@ router.get('/:id', async (req, res) => {
   res.json(data);
 });
 
-// GET /api/prospects/:id/logs - Historique d'un prospect
-router.get('/:id/logs', async (req, res) => {
+// DELETE /api/prospects/:id - Supprimer un prospect
+router.delete('/:id', async (req, res) => {
   const { id } = req.params;
-  const { data, error } = await supabase
-    .from('activity_logs')
-    .select('*')
-    .eq('prospect_id', id)
-    .order('created_at', { ascending: false });
+  try {
+    const { error } = await supabase
+      .from('prospects')
+      .delete()
+      .eq('id', id);
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/prospects - Suppression groupée
+router.delete('/', async (req, res) => {
+  const { ids } = req.body;
+  
+  if (!ids || !ids.length) {
+    return res.status(400).json({ error: 'IDs manquants' });
+  }
+
+  try {
+    const { error } = await supabase
+      .from('prospects')
+      .delete()
+      .in('id', ids);
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;
