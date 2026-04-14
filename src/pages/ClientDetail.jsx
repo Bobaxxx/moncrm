@@ -40,6 +40,7 @@ export default function ClientDetail() {
       setMaquettePhone(detailRes.data.maquette_phone || '');
     } catch (err) {
       console.error('Error loading client detail:', err);
+      setProspect(null);
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,8 @@ export default function ClientDetail() {
     );
   }
 
-  const statusColor = STATUT_COLORS[prospect.statut] || { bg: 'bg-surface-800', text: 'text-surface-400', border: 'border-surface-700' };
+  const statusColor = (prospect?.statut && STATUT_COLORS[prospect.statut]) || { bg: 'bg-surface-800', text: 'text-surface-400', border: 'border-surface-700' };
+  const statusLabel = (prospect?.statut && STATUT_LABELS[prospect.statut]) || prospect?.statut || 'Inconnu';
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-20">
@@ -141,10 +143,10 @@ export default function ClientDetail() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusColor.bg} ${statusColor.text} ${statusColor.border} border`}>
-                {STATUT_LABELS[prospect.statut]}
+                {statusLabel}
               </span>
               <span className={SOURCE_BADGE_CLASS[prospect.source] || 'badge-maps'}>
-                {SOURCE_LABELS[prospect.source] || prospect.source}
+                {SOURCE_LABELS[prospect.source] || prospect.source || 'Inconnu'}
               </span>
             </div>
             <h1 className="text-4xl md:text-5xl font-black text-surface-50 tracking-tight">
@@ -260,7 +262,7 @@ export default function ClientDetail() {
                       <div className="text-xs text-surface-300">
                         {log.event_type === 'status_change' ? (
                           <span>
-                            Statut modifié de <span className="font-bold text-surface-400">{STATUT_LABELS[log.old_value]}</span> à <span className="font-bold text-primary-400">{STATUT_LABELS[log.new_value]}</span>
+                            Statut modifié de <span className="font-bold text-surface-400">{STATUT_LABELS[log.old_value] || log.old_value || '—'}</span> à <span className="font-bold text-primary-400">{STATUT_LABELS[log.new_value] || log.new_value || '—'}</span>
                           </span>
                         ) : (
                           <span>{log.event_type}: {log.new_value}</span>
