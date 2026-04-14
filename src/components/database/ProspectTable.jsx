@@ -9,7 +9,9 @@ import {
   X,
   Edit2,
   ChevronDown,
-  UserSearch
+  UserSearch,
+  Copy,
+  Check
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { STATUT_LABELS, STATUT_COLORS } from '../../utils/constants';
@@ -18,6 +20,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
   const [editingId, setEditingId] = useState(null);
   const [statusMenuId, setStatusMenuId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [copiedId, setCopiedId] = useState(null);
   const tableRef = useRef(null);
 
   // DRAG TO FILL STATE
@@ -102,6 +105,19 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
 
   const handleChange = (field, value) => {
     setEditForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCopyInfo = (prospect) => {
+    const info = [
+      prospect.nom_entreprise,
+      prospect.adresse,
+      prospect.telephone,
+      prospect.departement
+    ].filter(Boolean).join(' ');
+    
+    navigator.clipboard.writeText(info);
+    setCopiedId(prospect.id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   if (!prospects || prospects.length === 0) {
@@ -314,6 +330,17 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                           >
                             <UserSearch className="w-4 h-4" />
                           </Link>
+                          <button 
+                            onClick={() => handleCopyInfo(p)}
+                            className={`p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 border ${
+                              copiedId === p.id 
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                                : 'bg-surface-800/50 text-surface-400 hover:text-surface-200 border-surface-700/50 hover:bg-surface-800'
+                            }`}
+                            title="Copier les informations"
+                          >
+                            {copiedId === p.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </button>
                           <button 
                             onClick={(e) => {
                                 e.stopPropagation();
