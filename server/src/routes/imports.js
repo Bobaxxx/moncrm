@@ -126,6 +126,19 @@ router.post('/upload', upload.array('files'), async (req, res) => {
     for (const file of req.files) {
       const { prospectsToInsert, stats, filename } = await processFile(file, useFilter);
 
+      // Trouver le sort_order max dans cette catégorie pour placer la feuille à la fin
+      const { data: existingInCategory } = await supabase
+        .from('import_history')
+        .select('sort_order')
+        .eq('category', category)
+        .order('sort_order', { ascending: false })
+        .limit(1);
+
+      const maxSortOrder = existingInCategory && existingInCategory.length > 0
+        ? (existingInCategory[0].sort_order ?? 0)
+        : -1;
+      const newSortOrder = maxSortOrder + 1;
+
       const { data: importRecord, error: importError } = await supabase
         .from('import_history')
         .insert({
@@ -134,7 +147,8 @@ router.post('/upload', upload.array('files'), async (req, res) => {
           lignes_importees: stats.imported,
           lignes_filtrees: stats.filtered,
           doublons_ignores: 0,
-          category
+          category,
+          sort_order: newSortOrder
         })
         .select()
         .single();

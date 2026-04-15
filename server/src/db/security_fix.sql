@@ -7,6 +7,12 @@ ALTER TABLE import_history ADD COLUMN IF NOT EXISTS is_completed BOOLEAN DEFAULT
 ALTER TABLE import_history ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0;
 ALTER TABLE import_history ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Serrurier';
 
+-- ADDED: Colonnes pour la page Clients Signés (Facturation)
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS montant_contrat DECIMAL(10,2);
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS date_prochaine_facture DATE;
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS statut_facturation TEXT DEFAULT 'a_envoyer';
+ALTER TABLE prospects ADD COLUMN IF NOT EXISTS notes_client TEXT;
+
 -- 1. Nettoyage (optionnel, au cas où des politiques existeraient déjà)
 DROP POLICY IF EXISTS "Enable all for authenticated users" ON import_history;
 DROP POLICY IF EXISTS "Enable all for authenticated users" ON prospects;

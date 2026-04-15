@@ -8,6 +8,7 @@ import Marketing from './pages/Marketing';
 import Planning from './pages/Planning';
 import Analytics from './pages/Analytics';
 import ClientDetail from './pages/ClientDetail';
+import Clients from './pages/Clients';
 import Login from './pages/Login';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -28,6 +29,7 @@ function AppContent() {
           <Route path="/import" element={<Import />} />
           <Route path="/marketing" element={<Marketing />} />
           <Route path="/planning" element={<Planning />} />
+          <Route path="/clients" element={<Clients />} />
           <Route path="*" element={<Navigate to="/database" replace />} />
         </Routes>
       </main>
