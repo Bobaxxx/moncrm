@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
+import AddProspectModal from '../database/AddProspectModal';
 import { 
   Database, 
   LayoutDashboard, 
@@ -31,6 +33,7 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -38,6 +41,7 @@ export default function Sidebar() {
   };
 
   return (
+    <>
     <aside className="w-72 bg-surface-950 border-r border-surface-900 flex flex-col h-screen sticky top-0 animate-slide-in-left">
       {/* Brand */}
       <div className="p-8 pb-4">
@@ -50,7 +54,10 @@ export default function Sidebar() {
       </div>
 
       <div className="px-6 py-4 mb-4">
-        <button className="w-full btn-primary py-3 rounded-2xl flex items-center justify-center gap-2 group shadow-xl shadow-primary-500/10">
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="w-full btn-primary py-3 rounded-2xl flex items-center justify-center gap-2 group shadow-xl shadow-primary-500/10"
+        >
           <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
           <span className="text-xs font-bold uppercase tracking-wider">Nouveau Prospect</span>
         </button>
@@ -114,5 +121,12 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+
+    <AddProspectModal
+      isOpen={showAddModal}
+      onClose={() => setShowAddModal(false)}
+      onRefresh={() => {}}
+    />
+    </>
   );
 }
