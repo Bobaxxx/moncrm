@@ -215,17 +215,18 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                   <td className={`px-4 py-3 relative ${isBeingFilled ? 'after:absolute after:inset-0 after:border-y-2 after:border-primary-500/50' : ''}`}>
                     <div className="status-selector flex items-center gap-1">
                       {isStatusMenuOpen ? (
-                        <div className="flex flex-col gap-1 p-1 bg-surface-950 border border-surface-800 rounded-xl shadow-2xl absolute left-0 top-1/2 -translate-y-1/2 z-50 min-w-[140px] animate-scale-in">
+                        <div className={`flex flex-col gap-1 p-1 bg-surface-950 border border-surface-800 rounded-xl shadow-2xl absolute left-0 z-50 min-w-[160px] animate-scale-in max-h-[400px] overflow-y-auto
+                          ${idx < 5 ? 'top-0' : idx > prospects.length - 5 ? 'bottom-0' : 'top-1/2 -translate-y-1/2'}`}>
                           {Object.entries(STATUT_LABELS).map(([val, label]) => {
                             const colors = STATUT_COLORS[val];
                             return (
                               <button
                                 key={val}
                                 onClick={() => handleQuickStatusUpdate(p.id, val)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all hover:bg-surface-800
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold transition-all hover:bg-surface-800
                                   ${p.statut === val ? colors.text + ' bg-surface-800/50' : 'text-surface-500'}`}
                               >
-                                <div className={`w-1.5 h-1.5 rounded-full ${colors.dot}`} />
+                                <div className={`w-2 h-2 rounded-full ${colors.dot}`} />
                                 {label}
                               </button>
                             );
