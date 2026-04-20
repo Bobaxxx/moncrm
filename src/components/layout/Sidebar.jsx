@@ -15,7 +15,8 @@ import {
   User,
   ShieldCheck,
   FileText,
-  Star
+  Star,
+  Package
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { path: '/analytics', icon: FileText, label: 'Bilan de jour', desc: 'Analyses & KPI' },
   { path: '/import', icon: Upload, label: 'Importation', desc: 'Ajouter des fichiers' },
   { path: '/billing', icon: FileText, label: 'Facturation', desc: 'Factures & Devis' },
+  { path: '/products', icon: Package, label: 'Produits', desc: 'Catalogue & Tarifs' },
   { path: '/planning', icon: Calendar, label: 'Planning', desc: 'Tâches & Rappels' },
 ];
 

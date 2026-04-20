@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getProspects, createInvoice } from '../../services/api';
-import { X, Plus, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
+import { getProspects, createInvoice, getProducts } from '../../services/api';
+import { X, Plus, Trash2, CheckCircle, AlertCircle, Search, Package } from 'lucide-react';
 
 export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -16,14 +16,26 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
   });
 
   const [prospects, setProspects] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showProductPicker, setShowProductPicker] = useState(null); // Index of item being picked
 
   useEffect(() => {
     if (isOpen) {
       fetchProspects();
+      fetchProducts();
     }
   }, [isOpen]);
+
+  const fetchProducts = async () => {
+    try {
+      const res = await getProducts();
+      setProducts(res.data || []);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    }
+  };
 
   const fetchProspects = async () => {
     try {
@@ -50,6 +62,17 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
     const newItems = [...formData.items];
     newItems[index] = { ...newItems[index], [field]: value };
     setFormData({ ...formData, items: newItems });
+  };
+
+  const handleSelectProduct = (index, product) => {
+    const newItems = [...formData.items];
+    newItems[index] = {
+      ...newItems[index],
+      description: product.name,
+      unit_price: product.price
+    };
+    setFormData({ ...formData, items: newItems });
+    setShowProductPicker(null);
   };
 
   const handleProspectSelect = (prospectId) => {
@@ -235,15 +258,48 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
               {formData.items.map((item, index) => (
                 <div key={index} className="flex flex-col md:flex-row gap-4 bg-surface-950/30 p-4 rounded-2xl border border-surface-800/50 animate-slide-in-bottom">
                   <div className="flex-1">
-                    <label className="block text-[10px] font-bold text-surface-600 uppercase mb-1">Désignation</label>
-                    <input 
-                      type="text" 
-                      required
-                      placeholder="Description de la prestation..."
-                      className="w-full bg-surface-950/50 border border-surface-800 rounded-xl p-2 text-sm focus:border-primary-500/50 outline-none"
-                      value={item.description}
-                      onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[10px] font-bold text-surface-600 uppercase">Désignation</label>
+                      <button 
+                        type="button"
+                        onClick={() => setShowProductPicker(index)}
+                        className="text-[9px] font-bold text-primary-500 uppercase hover:text-primary-400 transition-colors"
+                      >
+                        Catalogue カタログ
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        required
+                        placeholder="Description de la prestation..."
+                        className="w-full bg-surface-950/50 border border-surface-800 rounded-xl p-2 text-sm focus:border-primary-500/50 outline-none"
+                        value={item.description}
+                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                      />
+                      {showProductPicker === index && (
+                        <div className="absolute left-0 top-full mt-2 w-full max-h-60 overflow-y-auto bg-surface-900 border border-surface-800 rounded-2xl shadow-2xl z-50 p-2 space-y-1 animate-scale-in">
+                          <div className="p-2 border-b border-surface-800 mb-2 flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-surface-500">Choisir un produit</span>
+                            <X className="w-3 h-3 cursor-pointer" onClick={() => setShowProductPicker(null)} />
+                          </div>
+                          {products.map(p => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => handleSelectProduct(index, p)}
+                              className="w-full text-left p-3 rounded-xl hover:bg-surface-800 flex items-center justify-between group"
+                            >
+                              <div>
+                                <p className="text-sm font-bold text-white group-hover:text-primary-400">{p.name}</p>
+                                <p className="text-[10px] text-surface-500 truncate max-w-[200px]">{p.description}</p>
+                              </div>
+                              <span className="text-xs font-black text-emerald-400">{p.price}€</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="w-full md:w-24">
                     <label className="block text-[10px] font-bold text-surface-600 uppercase mb-1">Qté</label>

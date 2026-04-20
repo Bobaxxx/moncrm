@@ -13,6 +13,7 @@ import smsRouter from './routes/sms.js';
 import planningRouter from './routes/planning.js';
 import analyticsRouter from './routes/analytics.js';
 import billingRouter from './routes/billing.js';
+import productsRouter from './routes/products.js';
 import { checkRecurrentBilling } from './services/subscriptionService.js';
 
 // Middleware Auth
@@ -39,6 +40,7 @@ app.use('/api/sms', smsRouter);
 app.use('/api/planning', planningRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/billing', billingRouter);
+app.use('/api/products', productsRouter);
 
 
 // Health check

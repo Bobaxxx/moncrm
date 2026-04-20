@@ -86,5 +86,12 @@ export const getInvoiceDetail = (id) => api.get(`/billing/${id}`);
 export const createInvoice = (data) => api.post('/billing', data);
 export const updateInvoiceStatus = (id, status) => api.patch(`/billing/${id}/status`, { status });
 export const deleteInvoice = (id) => api.delete(`/billing/${id}`);
+export const processRecurringBilling = () => api.post('/billing/process-recurring');
+
+// Products
+export const getProducts = () => api.get('/products');
+export const createProduct = (data) => api.post('/products', data);
+export const updateProduct = (id, data) => api.patch(`/products/${id}`, data);
+export const deleteProduct = (id) => api.delete(`/products/${id}`);
 
 export default api;
