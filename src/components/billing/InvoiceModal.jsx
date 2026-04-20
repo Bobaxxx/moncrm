@@ -53,7 +53,7 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
   };
 
   const handleProspectSelect = (prospectId) => {
-    const prospect = prospects.find(p => p.id === parseInt(prospectId));
+    const prospect = prospects.find(p => p.id.toString() === prospectId.toString());
     if (prospect) {
       setFormData({
         ...formData,

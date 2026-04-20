@@ -6,6 +6,7 @@ const router = Router();
 // GET /api/prospects - Liste avec filtres
 router.get('/', async (req, res) => {
   const { search, statut, departement, source } = req.query;
+  console.log('GET /api/prospects - Filters:', { search, statut, departement, source });
 
   let query = supabase.from('prospects').select('*').order('created_at', { ascending: false });
 
@@ -13,7 +14,7 @@ router.get('/', async (req, res) => {
     query = query.or(`nom_entreprise.ilike.%${search}%,telephone.ilike.%${search}%`);
   }
   if (statut) {
-    query = query.eq('statut', statut);
+    query = query.ilike('statut', statut);
   }
   if (departement) {
     query = query.eq('departement', departement);
@@ -27,7 +28,7 @@ router.get('/', async (req, res) => {
 
   const { data, error } = await query
     .order('id', { ascending: true }) // TOUJOURS TRIER PAR ID POUR GARDER L'ORDRE ORIGINAL
-    .limit(100);
+    .limit(500);
 
 
   if (error) return res.status(500).json({ error: error.message });
