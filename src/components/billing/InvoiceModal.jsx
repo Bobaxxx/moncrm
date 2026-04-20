@@ -28,11 +28,12 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
   const fetchProspects = async () => {
     try {
       const response = await axios.get('http://localhost:5000/api/prospects', {
+        params: { statut: 'client_signe' },
         headers: { Authorization: `Bearer ${localStorage.getItem('sb-token')}` }
       });
       setProspects(response.data);
     } catch (err) {
-      console.error('Error fetching prospects:', err);
+      console.error('Error fetching clients:', err);
     }
   };
 
@@ -139,13 +140,13 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-wider mb-2">Associer à un prospect</label>
+                <label className="block text-[10px] font-bold text-surface-500 uppercase tracking-wider mb-2">Associer à un client</label>
                 <select 
                   className="w-full bg-surface-950/50 border border-surface-800 rounded-xl p-3 text-sm focus:border-primary-500/50 outline-none"
                   onChange={(e) => handleProspectSelect(e.target.value)}
                   value={formData.prospect_id || ''}
                 >
-                  <option value="">-- Sélectionner un prospect (optionnel) --</option>
+                  <option value="">-- Sélectionner un client (optionnel) --</option>
                   {prospects.map(p => (
                     <option key={p.id} value={p.id}>{p.nom_entreprise}</option>
                   ))}
