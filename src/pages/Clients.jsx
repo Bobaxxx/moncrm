@@ -15,6 +15,9 @@ const STATUT_FACTURATION = [
 function EditModal({ client, onClose, onSave }) {
   const [form, setForm] = useState({
     montant_contrat: client.montant_contrat || '',
+    montant_mensuel: client.montant_mensuel || '',
+    contrat_type: client.contrat_type || 'achat',
+    has_maintenance: client.has_maintenance || false,
     date_prochaine_facture: client.date_prochaine_facture || '',
     statut_facturation: client.statut_facturation || 'a_envoyer',
     notes_client: client.notes_client || '',
@@ -26,6 +29,9 @@ function EditModal({ client, onClose, onSave }) {
     try {
       await updateProspect(client.id, {
         montant_contrat: form.montant_contrat ? parseFloat(form.montant_contrat) : null,
+        montant_mensuel: form.montant_mensuel ? parseFloat(form.montant_mensuel) : null,
+        contrat_type: form.contrat_type,
+        has_maintenance: form.has_maintenance,
         date_prochaine_facture: form.date_prochaine_facture || null,
         statut_facturation: form.statut_facturation,
         notes_client: form.notes_client,
@@ -61,21 +67,88 @@ function EditModal({ client, onClose, onSave }) {
 
         {/* Form */}
         <div className="p-6 space-y-5">
-          {/* Montant */}
+          {/* Type de Contrat */}
           <div>
             <label className="text-[10px] uppercase font-bold text-surface-500 tracking-widest mb-2 block">
-              Montant du contrat (€)
+              Type de contrat
             </label>
-            <div className="relative">
-              <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
-              <input
-                type="number"
-                placeholder="Ex: 1200"
-                value={form.montant_contrat}
-                onChange={e => setForm(f => ({ ...f, montant_contrat: e.target.value }))}
-                className="input-field pl-9 w-full"
-              />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setForm(f => ({ ...f, contrat_type: 'achat' }))}
+                className={`flex-1 p-3 rounded-xl border text-xs font-bold transition-all ${
+                  form.contrat_type === 'achat'
+                    ? 'bg-primary-500/10 border-primary-500 text-primary-400'
+                    : 'bg-surface-900/40 border-surface-800/40 text-surface-500'
+                }`}
+              >
+                Achat Unique
+              </button>
+              <button
+                onClick={() => setForm(f => ({ ...f, contrat_type: 'abonnement', montant_mensuel: 89 }))}
+                className={`flex-1 p-3 rounded-xl border text-xs font-bold transition-all ${
+                  form.contrat_type === 'abonnement'
+                    ? 'bg-amber-500/10 border-amber-500 text-amber-400'
+                    : 'bg-surface-900/40 border-surface-800/40 text-surface-500'
+                }`}
+              >
+                Abonnement Mensuel
+              </button>
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Montant Achat */}
+            <div>
+              <label className="text-[10px] uppercase font-bold text-surface-500 tracking-widest mb-2 block">
+                Prix Achat Site (€)
+              </label>
+              <div className="relative">
+                <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+                <input
+                  type="number"
+                  placeholder="Ex: 1200"
+                  value={form.montant_contrat}
+                  onChange={e => setForm(f => ({ ...f, montant_contrat: e.target.value }))}
+                  className="input-field pl-9 w-full"
+                />
+              </div>
+            </div>
+
+            {/* Montant Mensuel */}
+            <div className={`${form.contrat_type !== 'abonnement' ? 'opacity-50 grayscale' : ''}`}>
+              <label className="text-[10px] uppercase font-bold text-surface-500 tracking-widest mb-2 block">
+                Mensuel (€/mois)
+              </label>
+              <div className="relative">
+                <Euro className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+                <input
+                  type="number"
+                  placeholder="Ex: 89"
+                  disabled={form.contrat_type !== 'abonnement'}
+                  value={form.montant_mensuel}
+                  onChange={e => setForm(f => ({ ...f, montant_mensuel: e.target.value }))}
+                  className="input-field pl-9 w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Maintenance */}
+          <div className="flex items-center justify-between p-4 rounded-xl bg-surface-900/40 border border-surface-800/40">
+            <div>
+              <p className="text-xs font-bold text-surface-50">Maintenance maintenance facultative</p>
+              <p className="text-[10px] text-surface-500">Inclure le suivi mensuel</p>
+            </div>
+            <button
+              onClick={() => setForm(f => ({ ...f, has_maintenance: !f.has_maintenance }))}
+              className={`w-12 h-6 rounded-full transition-all relative ${
+                form.has_maintenance ? 'bg-emerald-500' : 'bg-surface-800'
+              }`}
+            >
+              <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${
+                form.has_maintenance ? 'left-7' : 'left-1'
+              }`} />
+            </button>
           </div>
 
           {/* Date facture */}
@@ -168,6 +241,7 @@ export default function Clients() {
   useEffect(() => { loadClients(); }, []);
 
   const totalCA = clients.reduce((sum, c) => sum + (parseFloat(c.montant_contrat) || 0), 0);
+  const totalMRR = clients.filter(c => c.contrat_type === 'abonnement').reduce((sum, c) => sum + (parseFloat(c.montant_mensuel) || 0), 0);
   const totalPaye = clients.filter(c => c.statut_facturation === 'payee').reduce((sum, c) => sum + (parseFloat(c.montant_contrat) || 0), 0);
   const facturesUrgentes = clients.filter(c => {
     if (!c.date_prochaine_facture || c.statut_facturation === 'payee') return false;
@@ -232,14 +306,14 @@ export default function Clients() {
         <div className="glass-card p-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-primary-500/20 flex items-center justify-center">
-              <Banknote className="w-5 h-5 text-primary-400" />
+              <TrendingUp className="w-5 h-5 text-primary-400" />
             </div>
-            <p className="text-[10px] uppercase font-bold text-surface-500 tracking-widest">Encaissé</p>
+            <p className="text-[10px] uppercase font-bold text-surface-500 tracking-widest">MRR (Mensuel)</p>
           </div>
           <p className="text-3xl font-bold text-surface-50">
-            {totalPaye.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €
+            {totalMRR.toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €
           </p>
-          <p className="text-xs text-surface-600 mt-1">Factures payées</p>
+          <p className="text-xs text-surface-600 mt-1">Revenu Récurrent</p>
         </div>
 
         {/* En attente */}
@@ -248,12 +322,12 @@ export default function Clients() {
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
               <Clock className="w-5 h-5 text-amber-400" />
             </div>
-            <p className="text-[10px] uppercase font-bold text-surface-500 tracking-widest">À encaisser</p>
+            <p className="text-[10px] uppercase font-bold text-surface-500 tracking-widest">Abonnés</p>
           </div>
           <p className="text-3xl font-bold text-surface-50">
-            {(totalCA - totalPaye).toLocaleString('fr-FR', { minimumFractionDigits: 0 })} €
+            {clients.filter(c => c.contrat_type === 'abonnement').length}
           </p>
-          <p className="text-xs text-surface-600 mt-1">Reste à percevoir</p>
+          <p className="text-xs text-surface-600 mt-1">Clients actifs mensuels</p>
         </div>
 
         {/* Factures urgentes */}
@@ -346,9 +420,22 @@ export default function Clients() {
                       </a>
                     )}
                   </div>
-                  {client.notes_client && (
-                    <p className="text-xs text-surface-600 mt-1.5 italic truncate max-w-md">{client.notes_client}</p>
-                  )}
+                  <div className="flex items-center gap-2 mt-2">
+                    {client.contrat_type === 'abonnement' ? (
+                      <span className="px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase tracking-widest">
+                        Abonnement {client.montant_mensuel}€/mois
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-lg bg-primary-500/10 text-primary-400 border border-primary-500/20 text-[9px] font-black uppercase tracking-widest">
+                        Achat Unique
+                      </span>
+                    )}
+                    {client.has_maintenance && (
+                      <span className="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
+                        <CheckCircle2 className="w-2.5 h-2.5" /> Maintenance OK
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Montant */}
