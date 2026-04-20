@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getProspects, createInvoice } from '../../services/api';
 import { X, Plus, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
@@ -27,11 +27,8 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
 
   const fetchProspects = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/prospects', {
-        params: { statut: 'client_signe' },
-        headers: { Authorization: `Bearer ${localStorage.getItem('sb-token')}` }
-      });
-      setProspects(response.data);
+      const response = await getProspects({ statut: 'client_signe' });
+      setProspects(response.data || []);
     } catch (err) {
       console.error('Error fetching clients:', err);
     }
@@ -73,9 +70,7 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
     setError('');
 
     try {
-      await axios.post('http://localhost:5000/api/billing', formData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('sb-token')}` }
-      });
+      await createInvoice(formData);
       onSuccess();
       onClose();
     } catch (err) {

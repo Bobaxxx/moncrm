@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { getInvoices, updateInvoiceStatus } from '../services/api';
 import { 
   Plus, 
   FileText, 
@@ -31,11 +31,8 @@ export default function Facturation() {
       if (filterStatut !== 'all') params.status = filterStatut;
       if (filterType !== 'all') params.type = filterType;
       
-      const response = await axios.get('http://localhost:5000/api/billing', {
-        params,
-        headers: { Authorization: `Bearer ${localStorage.getItem('sb-token')}` }
-      });
-      setInvoices(response.data);
+      const response = await getInvoices(params);
+      setInvoices(response.data || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
     } finally {
@@ -49,10 +46,7 @@ export default function Facturation() {
 
   const handleMarkAsPaid = async (id) => {
     try {
-      await axios.patch(`http://localhost:5000/api/billing/${id}/status`, 
-        { status: 'payee' },
-        { headers: { Authorization: `Bearer ${localStorage.getItem('sb-token')}` } }
-      );
+      await updateInvoiceStatus(id, 'payee');
       fetchInvoices();
     } catch (error) {
       console.error('Error marking as paid:', error);
@@ -234,7 +228,7 @@ export default function Facturation() {
                         </button>
                         {invoice.pdf_url && (
                           <a 
-                            href={`http://localhost:5000${invoice.pdf_url}`} 
+                            href={invoice.pdf_url} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="p-2 rounded-xl bg-primary-500/10 text-primary-400 hover:bg-primary-500/20 transition-colors"

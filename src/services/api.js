@@ -80,5 +80,11 @@ export const getPlanningTasks = (params) => api.get('/planning', { params });
 export const createPlanningTask = (data) => api.post('/planning', data);
 export const updatePlanningTask = (id, data) => api.patch(`/planning/${id}`, data);
 export const deletePlanningTask = (id) => api.delete(`/planning/${id}`);
+// Billing
+export const getInvoices = (params) => api.get('/billing', { params });
+export const getInvoiceDetail = (id) => api.get(`/billing/${id}`);
+export const createInvoice = (data) => api.post('/billing', data);
+export const updateInvoiceStatus = (id, status) => api.patch(`/billing/${id}/status`, { status });
+export const deleteInvoice = (id) => api.delete(`/billing/${id}`);
 
 export default api;
