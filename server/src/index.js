@@ -13,6 +13,7 @@ import smsRouter from './routes/sms.js';
 import planningRouter from './routes/planning.js';
 import analyticsRouter from './routes/analytics.js';
 import billingRouter from './routes/billing.js';
+import { checkRecurrentBilling } from './services/subscriptionService.js';
 
 // Middleware Auth
 import { requireAuth } from './middleware/authMiddleware.js';
@@ -55,5 +56,15 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Serveur MonCRM prêt sur le port ${PORT}`);
+  
+  // Lancer la vérification de la facturation récurrente toutes les 24 heures
+  setInterval(() => {
+    checkRecurrentBilling().catch(err => console.error('Interval billing error:', err));
+  }, 24 * 60 * 60 * 1000);
+
+  // Lancement initial après 30 secondes pour ne pas surcharger le démarrage
+  setTimeout(() => {
+    checkRecurrentBilling().catch(err => console.error('Initial billing check error:', err));
+  }, 30000);
 });
