@@ -4,7 +4,6 @@ import Database from './pages/Database';
 import Pipeline from './pages/Pipeline';
 import Import from './pages/Import';
 import Dashboard from './pages/Dashboard';
-import Marketing from './pages/Marketing';
 import Planning from './pages/Planning';
 import Analytics from './pages/Analytics';
 import ClientDetail from './pages/ClientDetail';
@@ -28,7 +27,6 @@ function AppContent() {
           <Route path="/prospect/:id" element={<ClientDetail />} />
 
           <Route path="/import" element={<Import />} />
-          <Route path="/marketing" element={<Marketing />} />
           <Route path="/planning" element={<Planning />} />
           <Route path="/clients" element={<Clients />} />
           <Route path="/billing" element={<Facturation />} />
