@@ -55,7 +55,7 @@ export default function Products() {
       setFormData({ name: '', description: '', price: '', category: 'service' });
       fetchProducts();
     } catch (err) {
-      alert('Erreur lors de l''enregistrement');
+      alert("Erreur lors de l'enregistrement");
     }
   };
 
