@@ -12,6 +12,7 @@ import importsRouter from './routes/imports.js';
 import smsRouter from './routes/sms.js';
 import planningRouter from './routes/planning.js';
 import analyticsRouter from './routes/analytics.js';
+import billingRouter from './routes/billing.js';
 
 // Middleware Auth
 import { requireAuth } from './middleware/authMiddleware.js';
@@ -36,6 +37,7 @@ app.use('/api/imports', importsRouter);
 app.use('/api/sms', smsRouter);
 app.use('/api/planning', planningRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/billing', billingRouter);
 
 
 // Health check

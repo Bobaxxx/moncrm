@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { path: '/analytics', icon: FileText, label: 'Bilan de jour', desc: 'Analyses & KPI' },
   { path: '/import', icon: Upload, label: 'Importation', desc: 'Ajouter des fichiers' },
   { path: '/marketing', icon: MessageSquare, label: 'SMS Marketing', desc: 'Campagnes groupées' },
+  { path: '/billing', icon: FileText, label: 'Facturation', desc: 'Factures & Devis' },
   { path: '/planning', icon: Calendar, label: 'Planning', desc: 'Tâches & Rappels' },
 ];
 
