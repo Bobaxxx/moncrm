@@ -217,9 +217,6 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
                   <li className="flex items-center gap-2 text-xs text-surface-400">
                     <CheckCircle className="w-3 h-3 text-green-500" /> TVA non applicable, art. 293 B du CGI
                   </li>
-                  <li className="flex items-center gap-2 text-xs text-surface-400">
-                    <CheckCircle className="w-3 h-3 text-green-500" /> Pénalités de retard incluses
-                  </li>
                 </ul>
               </div>
             </div>

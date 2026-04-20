@@ -107,9 +107,6 @@ export const generateInvoicePDF = async (invoice, items) => {
       const footerY = 700;
       doc.text('TVA non applicable, art. 293 B du CGI', 50, footerY);
       doc.text('Conditions de règlement : Règlement immédiat ou selon la date d\'échéance indiquée.', 50, footerY + 15);
-      
-      doc.font('Helvetica-Bold').fontSize(8);
-      doc.text('Pénalités de retard : Tout retard de paiement donnera lieu au paiement d\'une pénalité calculée sur la base du taux légal en vigueur majoré de 10 points et d\'une indemnité forfaitaire pour frais de recouvrement de 40 €.', 50, footerY + 40, { width: 500 });
 
       doc.fontSize(9).font('Helvetica').text('Page 1 / 1', 50, 780, { align: 'center' });
       
