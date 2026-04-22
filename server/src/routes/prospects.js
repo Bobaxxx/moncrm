@@ -5,8 +5,8 @@ const router = Router();
 
 // GET /api/prospects - Liste avec filtres
 router.get('/', async (req, res) => {
-  const { search, statut, departement, source } = req.query;
-  console.log('GET /api/prospects - Filters:', { search, statut, departement, source });
+  const { search, statut, departement, source, category } = req.query;
+  console.log('GET /api/prospects - Filters:', { search, statut, departement, source, category });
 
   let query = supabase.from('prospects').select('*').order('created_at', { ascending: false });
 
@@ -24,6 +24,11 @@ router.get('/', async (req, res) => {
   }
   if (req.query.import_id) {
     query = query.eq('import_id', req.query.import_id);
+  }
+  
+  if (category) {
+    // Si on filtre par catégorie, on doit faire une jointure avec import_history
+    query = query.select('*, import_history!inner(category)').eq('import_history.category', category);
   }
 
   const { data, error } = await query

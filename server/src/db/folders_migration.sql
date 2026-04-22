@@ -13,3 +13,7 @@ ON CONFLICT (name) DO NOTHING;
 
 -- S'assurer qu'il y a au moins 'Serrurier' par défaut
 INSERT INTO folders (name) VALUES ('Serrurier') ON CONFLICT (name) DO NOTHING;
+
+-- SÉCURITÉ
+ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Auth access only" ON folders FOR ALL TO authenticated USING (true) WITH CHECK (true);

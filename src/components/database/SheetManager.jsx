@@ -3,7 +3,7 @@ import { X, Trash2, CheckSquare, Square, FileText, Calendar, Users, GripVertical
 import { bulkDeleteImports, updateImportOrder, updateImport } from '../../services/api';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
-export default function SheetManager({ imports: initialImports, onClose, onRefresh }) {
+export default function SheetManager({ imports: initialImports, folders, onClose, onRefresh }) {
   const [imports, setImports] = useState(initialImports);
   const [selectedIds, setSelectedIds] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -121,13 +121,16 @@ export default function SheetManager({ imports: initialImports, onClose, onRefre
 
           {selectedIds.length > 0 && (
             <div className="flex items-center gap-2 p-1.5 bg-primary-500/10 rounded-lg animate-fade-in">
-              <input 
-                type="text" 
-                placeholder="Nouveau dossier..." 
+              <select 
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 className="text-[10px] bg-surface-950 border border-surface-700/50 rounded-md px-2 py-1 outline-none focus:border-primary-500 w-32"
-              />
+              >
+                <option value="">Déplacer vers...</option>
+                {folders.map(f => (
+                  <option key={f.id} value={f.name}>{f.name}</option>
+                ))}
+              </select>
               <button 
                 onClick={handleMoveToCategory}
                 disabled={loading || !newCategory.trim()}

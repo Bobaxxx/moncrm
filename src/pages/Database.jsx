@@ -40,6 +40,7 @@ export default function Database() {
     search: '',
     statut: '',
     import_id: '',
+    category: '',
   });
 
   const scrollRef = useRef(null);
@@ -59,6 +60,13 @@ export default function Database() {
     window.addEventListener('resize', checkOverflow);
     return () => window.removeEventListener('resize', checkOverflow);
   }, [checkOverflow, imports]);
+
+  // Synchroniser le filtre category avec activeCategory
+  useEffect(() => {
+    if (activeCategory) {
+      setFilters(prev => ({ ...prev, category: activeCategory }));
+    }
+  }, [activeCategory]);
 
   const handleScroll = () => {
     if (scrollRef.current) {
@@ -461,7 +469,10 @@ export default function Database() {
             className="flex-1 flex items-end h-full overflow-x-auto sleek-scrollbar-x scroll-smooth gap-0 px-2 pb-1"
           >
             <div
-              onClick={() => handleFilterChange('import_id', '')}
+              onClick={() => {
+                handleFilterChange('import_id', '');
+                handleFilterChange('category', activeCategory || '');
+              }}
               className={`h-8 px-4 flex items-center gap-2 text-xs font-semibold translate-y-[1px] border-x border-t transition-all duration-200 whitespace-nowrap cursor-pointer rounded-t-lg
                 ${filters.import_id === '' 
                   ? 'bg-surface-900 border-surface-700/60 text-primary-400 z-10 shadow-[0_-4px_12px_rgba(99,102,241,0.1)]' 
@@ -493,7 +504,10 @@ export default function Database() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              onClick={() => handleFilterChange('import_id', imp.id)}
+                              onClick={() => {
+                                handleFilterChange('import_id', imp.id);
+                                handleFilterChange('category', ''); // On enlève le filtre catégorie quand une feuille est sélectionnée
+                              }}
                               className={`h-8 px-4 flex items-center gap-2 text-xs font-medium translate-y-[1px] border-x border-t transition-all duration-200 whitespace-nowrap cursor-pointer rounded-t-lg group
                                 ${isActive
                                   ? 'bg-surface-900 border-surface-700/60 text-primary-400 z-10 shadow-[0_-4px_15px_rgba(0,0,0,0.4)]' 
@@ -543,6 +557,7 @@ export default function Database() {
       {showManager && (
         <SheetManager 
           imports={imports} 
+          folders={folders}
           onClose={() => setShowManager(false)} 
           onRefresh={loadData}
         />
