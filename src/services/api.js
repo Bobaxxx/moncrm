@@ -94,4 +94,9 @@ export const createProduct = (data) => api.post('/products', data);
 export const updateProduct = (id, data) => api.patch(`/products/${id}`, data);
 export const deleteProduct = (id) => api.delete(`/products/${id}`);
 
+// Folders
+export const getFolders = () => api.get('/folders');
+export const createFolder = (data) => api.post('/folders', data);
+export const deleteFolder = (id) => api.delete(`/folders/${id}`);
+
 export default api;

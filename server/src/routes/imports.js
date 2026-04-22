@@ -5,7 +5,7 @@ import Papa from 'papaparse';
 import { supabase } from '../db/database.js';
 
 const router = Router();
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: 'server/uploads/' });
 
 // Helper: Mapper les colonnes CSV vers nos champs DB
 const mapColumns = (headers) => {

@@ -20,7 +20,10 @@ import {
   deleteImport,
   updateImportOrder,
   bulkUpdateProspects,
-  updateImportStatus
+  updateImportStatus,
+  getFolders,
+  createFolder,
+  deleteFolder
 } from '../services/api';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import ProspectTable from '../components/database/ProspectTable';
@@ -30,6 +33,7 @@ import { STATUT_LABELS } from '../utils/constants';
 export default function Database() {
   const [prospects, setProspects] = useState([]);
   const [imports, setImports] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showManager, setShowManager] = useState(false);
   const [filters, setFilters] = useState({
@@ -82,18 +86,25 @@ export default function Database() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [prospectsRes, importsRes] = await Promise.all([
+      const [prospectsRes, importsRes, foldersRes] = await Promise.all([
         getProspects(filters),
-        getImportHistory()
+        getImportHistory(),
+        getFolders()
       ]);
       setProspects(prospectsRes.data || []);
       const fetchedImports = importsRes.data || [];
       setImports(fetchedImports);
+      const fetchedFolders = foldersRes.data || [];
+      setFolders(fetchedFolders);
       
       // Auto-sélection de la première catégorie si aucune n'est sélectionnée
-      if (!activeCategory && fetchedImports.length > 0) {
-        const categories = [...new Set(fetchedImports.map(i => i.category || 'Serrurier'))];
-        if (categories.length > 0) setActiveCategory(categories[0]);
+      if (!activeCategory) {
+        if (fetchedFolders.length > 0) {
+          setActiveCategory(fetchedFolders[0].name);
+        } else if (fetchedImports.length > 0) {
+          const categories = [...new Set(fetchedImports.map(i => i.category || 'Serrurier'))];
+          if (categories.length > 0) setActiveCategory(categories[0]);
+        }
       }
     } catch (err) {
       console.error('Database load error:', err);
@@ -250,6 +261,36 @@ export default function Database() {
     document.body.removeChild(link);
   };
 
+  const handleAddFolder = async () => {
+    const name = prompt('Nom du nouveau dossier :');
+    if (!name || name.trim() === '') return;
+    
+    try {
+      await createFolder({ name: name.trim() });
+      const res = await getFolders();
+      setFolders(res.data);
+      setActiveCategory(name.trim());
+    } catch (err) {
+      console.error('Add folder error:', err);
+      alert(err.response?.data?.error || 'Erreur lors de la création du dossier');
+    }
+  };
+
+  const handleDeleteFolder = async (folder) => {
+    if (!confirm(`Supprimer le dossier "${folder.name}" ? Les feuilles à l'intérieur ne seront pas supprimées mais ne seront plus classées.`)) return;
+    try {
+      await deleteFolder(folder.id);
+      const res = await getFolders();
+      setFolders(res.data);
+      if (activeCategory === folder.name) {
+        setActiveCategory(res.data[0]?.name || null);
+      }
+    } catch (err) {
+      console.error('Delete folder error:', err);
+      alert('Erreur lors de la suppression');
+    }
+  };
+
   return (
     <div className="h-[calc(100vh-120px)] flex flex-col gap-4 animate-fade-in relative">
       {/* Header & Global Filters */}
@@ -372,21 +413,38 @@ export default function Database() {
           </div>
 
           {/* Filtre par Dossier/Catégorie */}
-          <div className="flex items-center gap-1 border-r border-surface-800 px-2 mr-2 overflow-x-auto no-scrollbar max-w-[300px]">
-            {[...new Set(imports.map(i => i.category || 'Serrurier'))].map(cat => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all whitespace-nowrap flex items-center gap-1.5
-                  ${activeCategory === cat 
-                    ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30' 
-                    : 'bg-surface-800/40 text-surface-500 hover:text-surface-300 border border-transparent'
-                  }`}
-              >
-                <Layers className="w-3 h-3" />
-                {cat}
-              </button>
+          <div className="flex items-center gap-1 border-r border-surface-800 px-2 mr-2 overflow-x-auto no-scrollbar max-w-[400px]">
+            {folders.map(folder => (
+              <div key={folder.id} className="relative group/folder">
+                <button
+                  onClick={() => setActiveCategory(folder.name)}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase transition-all whitespace-nowrap flex items-center gap-1.5
+                    ${activeCategory === folder.name 
+                      ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30' 
+                      : 'bg-surface-800/40 text-surface-500 hover:text-surface-300 border border-transparent'
+                    }`}
+                >
+                  <Layers className="w-3 h-3" />
+                  {folder.name}
+                </button>
+                {activeCategory === folder.name && folder.name !== 'Serrurier' && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder); }}
+                    className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/folder:opacity-100 transition-opacity"
+                    title="Supprimer ce dossier"
+                  >
+                    <Trash2 className="w-2 h-2" />
+                  </button>
+                )}
+              </div>
             ))}
+            <button 
+              onClick={handleAddFolder}
+              className="p-1 px-2 rounded-lg bg-surface-800/20 border border-dashed border-surface-700 text-surface-500 hover:text-primary-400 hover:border-primary-500/30 transition-all"
+              title="Ajouter un dossier"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
           </div>
 
           <div 

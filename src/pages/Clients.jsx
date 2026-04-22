@@ -21,6 +21,8 @@ function EditModal({ client, onClose, onSave }) {
     date_prochaine_facture: client.date_prochaine_facture || '',
     statut_facturation: client.statut_facturation || 'a_envoyer',
     notes_client: client.notes_client || '',
+    siren: client.siren || '',
+    adresse: client.adresse || '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -35,6 +37,8 @@ function EditModal({ client, onClose, onSave }) {
         date_prochaine_facture: form.date_prochaine_facture || null,
         statut_facturation: form.statut_facturation,
         notes_client: form.notes_client,
+        siren: form.siren,
+        adresse: form.adresse,
       });
       onSave();
       onClose();
@@ -186,6 +190,33 @@ function EditModal({ client, onClose, onSave }) {
                   {s.label}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] uppercase font-bold text-surface-500 tracking-widest mb-2 block">
+                SIREN / SIRET
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: 123 456 789"
+                value={form.siren}
+                onChange={e => setForm(f => ({ ...f, siren: e.target.value }))}
+                className="input-field w-full"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase font-bold text-surface-500 tracking-widest mb-2 block">
+                Adresse de facturation
+              </label>
+              <textarea
+                rows={1}
+                placeholder="Adresse complète..."
+                value={form.adresse}
+                onChange={e => setForm(f => ({ ...f, adresse: e.target.value }))}
+                className="input-field w-full resize-none py-2"
+              />
             </div>
           </div>
 

@@ -11,7 +11,7 @@ export const generateInvoicePDF = async (invoice, items) => {
     try {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
       const filename = `${invoice.type === 'quote' ? 'DEVIS' : 'FACTURE'}_${invoice.number}.pdf`;
-      const uploadDir = path.join(__dirname, '../../../uploads');
+      const uploadDir = path.join(__dirname, '../../uploads');
       
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });

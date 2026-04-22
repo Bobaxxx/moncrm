@@ -26,6 +26,8 @@ export default function ClientDetail() {
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState('');
   const [maquettePhone, setMaquettePhone] = useState('');
+  const [adresse, setAdresse] = useState('');
+  const [siren, setSiren] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -38,6 +40,8 @@ export default function ClientDetail() {
       setLogs(logsRes.data);
       setNotes(detailRes.data.notes || '');
       setMaquettePhone(detailRes.data.maquette_phone || '');
+      setAdresse(detailRes.data.adresse || '');
+      setSiren(detailRes.data.siren || '');
     } catch (err) {
       console.error('Error loading client detail:', err);
       setProspect(null);
@@ -53,8 +57,8 @@ export default function ClientDetail() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateProspect(id, { notes, maquette_phone: maquettePhone });
-      setProspect(prev => ({ ...prev, notes, maquette_phone: maquettePhone }));
+      await updateProspect(id, { notes, maquette_phone: maquettePhone, adresse, siren });
+      setProspect(prev => ({ ...prev, notes, maquette_phone: maquettePhone, adresse, siren }));
       // Reload logs to see the change if it was logged
       const logsRes = await getProspectLogs(id);
       setLogs(logsRes.data);
@@ -180,10 +184,28 @@ export default function ClientDetail() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-surface-500 uppercase tracking-widest">Adresse complète</label>
-                <div className="bg-surface-950/40 rounded-xl p-4 min-h-[50px] text-surface-300 flex items-start gap-3">
-                  <MapPin className="w-4 h-4 text-surface-600 mt-1" />
-                  <span>{prospect.adresse || 'N/A'}</span>
+                <label className="text-xs font-bold text-surface-500 uppercase tracking-widest">Adresse complète (Facturation)</label>
+                <div className="relative group">
+                  <MapPin className="absolute left-4 top-4 w-4 h-4 text-surface-500 group-focus-within:text-primary-400 transition-colors" />
+                  <textarea 
+                    value={adresse}
+                    onChange={(e) => setAdresse(e.target.value)}
+                    placeholder="Entrez l'adresse complète pour les factures..."
+                    className="input-field w-full pl-11 min-h-[80px] bg-surface-950/40 border-surface-800/60 focus:bg-surface-950 text-sm no-scrollbar py-3"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-surface-500 uppercase tracking-widest">SIREN / SIRET</label>
+                <div className="relative group">
+                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500 group-focus-within:text-primary-400 transition-colors" />
+                  <input 
+                    type="text"
+                    value={siren}
+                    onChange={(e) => setSiren(e.target.value)}
+                    placeholder="Ex: 123 456 789 00012"
+                    className="input-field w-full pl-11 bg-surface-950/40 border-surface-800/60 focus:bg-surface-950"
+                  />
                 </div>
               </div>
               <div className="space-y-2">

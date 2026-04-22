@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS prospects (
   statut TEXT DEFAULT 'a_contacter',
   import_id BIGINT,
   notes TEXT,
+  maquette_phone TEXT,
+  siren TEXT,
   sms_sent_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),

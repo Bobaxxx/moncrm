@@ -82,7 +82,8 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
         ...formData,
         prospect_id: prospect.id,
         client_name: prospect.nom_entreprise,
-        client_address: prospect.adresse || ''
+        client_address: prospect.adresse || '',
+        client_siren: prospect.siren || ''
       });
     }
   };

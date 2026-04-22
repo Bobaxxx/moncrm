@@ -12,7 +12,7 @@ import {
   ToggleLeft,
   ToggleRight
 } from 'lucide-react';
-import { previewFile, uploadFile } from '../services/api';
+import { previewFile, uploadFile, getFolders, createFolder } from '../services/api';
 import FileDropzone from '../components/import/FileDropzone';
 
 export default function Import() {
@@ -22,6 +22,7 @@ export default function Import() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [category, setCategory] = useState('Serrurier');
+  const [folders, setFolders] = useState([]);
   const [step, setStep] = useState(1); // 1: Drop, 2: Preview, 3: Success
 
   // Re-déclencher la preview quand 'useFilter' change en étape 2
@@ -30,6 +31,18 @@ export default function Import() {
       handlePreview();
     }
   }, [useFilter]);
+  
+  useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        const res = await getFolders();
+        setFolders(res.data || []);
+      } catch (err) {
+        console.error('Error fetching folders:', err);
+      }
+    };
+    fetchFolders();
+  }, []);
 
   const onFilesSelected = (newFiles) => {
     setFiles(newFiles); // FileDropzone gère déjà l'accumulation ou le remplacement
@@ -131,15 +144,37 @@ export default function Import() {
               </div>
 
               {/* Nouveau: Champ Catégorie */}
-              <div className="flex flex-col gap-2 flex-1">
-                <label className="text-[10px] uppercase font-bold text-surface-500 tracking-widest ml-1">Dossier / Catégorie</label>
-                <input 
-                  type="text" 
-                  placeholder="Ex: Serruriers, Menuisiers..." 
+              <div className="flex flex-col gap-2 flex-1 min-w-[200px]">
+                <label className="text-[10px] uppercase font-bold text-surface-500 tracking-widest ml-1 flex justify-between">
+                  <span>Dossier / Catégorie</span>
+                  <button 
+                    onClick={async () => {
+                      const name = prompt('Nom du nouveau dossier :');
+                      if (name && name.trim() !== '') {
+                        try {
+                          const res = await createFolder({ name: name.trim() });
+                          setFolders(prev => [...prev, res.data]);
+                          setCategory(name.trim());
+                        } catch (err) {
+                          alert(err.response?.data?.error || 'Erreur lors de la création');
+                        }
+                      }
+                    }}
+                    className="text-primary-500 hover:text-primary-400 normal-case"
+                  >
+                    + Nouveau
+                  </button>
+                </label>
+                <select 
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="input-field py-3 text-sm bg-surface-900 shadow-xl w-full"
-                />
+                >
+                  {folders.length === 0 && <option value="Serrurier">Serrurier</option>}
+                  {folders.map(f => (
+                    <option key={f.id} value={f.name}>{f.name}</option>
+                  ))}
+                </select>
               </div>
 
               <button 
