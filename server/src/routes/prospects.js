@@ -35,13 +35,31 @@ router.get('/', async (req, res) => {
     query = query.select('*, import_history(category)');
   }
 
-  const { data, error } = await query
-    .order('id', { ascending: true })
-    .limit(5000); // Augmenté pour éviter les disparitions
+  try {
+    let allData = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+    const MAX_TOTAL = 5000;
 
+    while (hasMore && allData.length < MAX_TOTAL) {
+      const { data, error } = await query
+        .range(from, from + PAGE_SIZE - 1);
 
-  if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+      if (error) throw error;
+      allData = [...allData, ...data];
+
+      if (data.length < PAGE_SIZE) {
+        hasMore = false;
+      } else {
+        from += PAGE_SIZE;
+      }
+    }
+
+    res.json(allData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // GET /api/prospects/stats - Statistiques globales
@@ -193,8 +211,30 @@ router.post('/bulk-update', async (req, res) => {
 // GET /api/prospects/kanban - Groupé par statut
 router.get('/kanban', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('prospects').select('*').order('updated_at', { ascending: false }).limit(5000);
-    if (error) throw error;
+    let allData = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from('prospects')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) throw error;
+      allData = [...allData, ...data];
+      
+      if (data.length < PAGE_SIZE) {
+        hasMore = false;
+      } else {
+        from += PAGE_SIZE;
+      }
+      
+      // Sécurité pour éviter les boucles infinies
+      if (allData.length >= 10000) hasMore = false;
+    }
 
     const columns = {
       a_contacter: [],
@@ -207,7 +247,7 @@ router.get('/kanban', async (req, res) => {
       client_signe: []
     };
 
-    data.forEach(p => {
+    allData.forEach(p => {
       const status = p.statut || 'a_contacter';
       if (columns[status]) {
         columns[status].push(p);
