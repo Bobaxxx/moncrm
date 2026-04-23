@@ -27,13 +27,17 @@ router.get('/', async (req, res) => {
   }
   
   if (category) {
-    // Si on filtre par catégorie, on doit faire une jointure avec import_history
+    // Utiliser une jointure pour filtrer par catégorie, mais permettre d'inclure les prospects manuels si besoin
+    // Ici on filtre strictement par catégorie d'import
     query = query.select('*, import_history!inner(category)').eq('import_history.category', category);
+  } else if (!req.query.import_id && !search) {
+    // Si on est en vue "Générale" sans filtre spécifique, on veut TOUT, y compris les manuels
+    query = query.select('*, import_history(category)');
   }
 
   const { data, error } = await query
-    .order('id', { ascending: true }) // TOUJOURS TRIER PAR ID POUR GARDER L'ORDRE ORIGINAL
-    .limit(500);
+    .order('id', { ascending: true })
+    .limit(5000); // Augmenté pour éviter les disparitions
 
 
   if (error) return res.status(500).json({ error: error.message });
@@ -189,7 +193,7 @@ router.post('/bulk-update', async (req, res) => {
 // GET /api/prospects/kanban - Groupé par statut
 router.get('/kanban', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('prospects').select('*').order('updated_at', { ascending: false });
+    const { data, error } = await supabase.from('prospects').select('*').order('updated_at', { ascending: false }).limit(5000);
     if (error) throw error;
 
     const columns = {

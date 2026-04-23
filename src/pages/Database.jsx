@@ -157,7 +157,8 @@ export default function Database() {
       const cleanPhone = (p.telephone || '').replace(/[\s.-]/g, '');
       const isSmsMobile = cleanPhone.startsWith('06') || cleanPhone.startsWith('07') || cleanPhone.startsWith('+336') || cleanPhone.startsWith('+337');
       const isFacebook = p.source === 'facebook' || (p.url_site && p.url_site.toLowerCase().includes('facebook.com'));
-      return (isSmsMobile || isFacebook) && p.statut !== 'sms_envoye';
+      // On ne touche que ceux qui sont encore "À contacter" pour éviter de déplacer des prospects déjà travaillés
+      return (isSmsMobile || isFacebook) && p.statut === 'a_contacter';
     });
 
     if (toUpdate.length === 0) {

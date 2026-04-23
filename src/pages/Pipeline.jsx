@@ -161,7 +161,9 @@ export default function Pipeline() {
   const filterProspects = (prospects) => {
     let filtered = prospects;
     
-    if (selectedImport) {
+    if (selectedImport === 'null') {
+      filtered = filtered.filter(p => !p.import_id);
+    } else if (selectedImport) {
       filtered = filtered.filter(p => p.import_id?.toString() === selectedImport.toString());
     }
 
