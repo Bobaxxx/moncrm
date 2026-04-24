@@ -120,8 +120,8 @@ router.get('/stats', async (req, res) => {
     const { count: smsToday } = await supabase
       .from('prospects')
       .select('*', { count: 'exact', head: true })
-      .gte('sms_sent_at', `${today}T00:00:00.000Z`)
-      .lte('sms_sent_at', `${today}T23:59:59.999Z`);
+      .gte('sms_sent_at', `${today}T00:00:00`)
+      .lte('sms_sent_at', `${today}T23:59:59`);
     
     stats.smsToday = smsToday || 0;
 
@@ -131,8 +131,8 @@ router.get('/stats', async (req, res) => {
       .select('*', { count: 'exact', head: true })
       .eq('event_type', 'status_change')
       .eq('new_value', 'maquette_envoyee')
-      .gte('created_at', `${today}T00:00:00.000Z`)
-      .lte('created_at', `${today}T23:59:59.999Z`);
+      .gte('created_at', `${today}T00:00:00`)
+      .lte('created_at', `${today}T23:59:59`);
     
     stats.maquettesToday = maquettesToday || 0;
 

@@ -61,7 +61,8 @@ router.get('/summary', async (req, res) => {
             .from('activity_logs')
             .select('new_value')
             .eq('event_type', 'status_change')
-            .gte('created_at', `${today}T00:00:00.000Z`);
+            .gte('created_at', `${today}T00:00:00`)
+            .lte('created_at', `${today}T23:59:59`);
 
         if (error) throw error;
 
