@@ -3,13 +3,23 @@ import { supabase } from '../db/database.js';
 
 const router = Router();
 
-// GET /api/prospects - Liste avec filtres
+// GET /api/prospects - Liste avec filtres et pagination
 router.get('/', async (req, res) => {
-  const { search, statut, departement, source, category } = req.query;
-  console.log('GET /api/prospects - Filters:', { search, statut, departement, source, category });
+  const { search, statut, departement, source, category, page, limit, nopagination, import_id } = req.query;
+  console.log('GET /api/prospects - Filters:', { search, statut, departement, source, category, page, limit, nopagination, import_id });
 
-  let query = supabase.from('prospects').select('*').order('created_at', { ascending: false });
+  let query;
+  
+  if (category) {
+    // On doit utiliser select avec !inner pour filtrer par catégorie jointe
+    query = supabase.from('prospects').select('*, import_history!inner(category)', { count: 'exact' })
+                 .eq('import_history.category', category);
+  } else {
+    // Inclure les infos d'import dans tous les cas
+    query = supabase.from('prospects').select('*, import_history(category)', { count: 'exact' });
+  }
 
+  // Appliquer les filtres
   if (search) {
     query = query.or(`nom_entreprise.ilike.%${search}%,telephone.ilike.%${search}%`);
   }
@@ -22,42 +32,54 @@ router.get('/', async (req, res) => {
   if (source) {
     query = query.eq('source', source);
   }
-  if (req.query.import_id) {
-    query = query.eq('import_id', req.query.import_id);
+  if (import_id) {
+    query = query.eq('import_id', import_id);
   }
-  
-  if (category) {
-    // Utiliser une jointure pour filtrer par catégorie, mais permettre d'inclure les prospects manuels si besoin
-    // Ici on filtre strictement par catégorie d'import
-    query = query.select('*, import_history!inner(category)').eq('import_history.category', category);
-  } else if (!req.query.import_id && !search) {
-    // Si on est en vue "Générale" sans filtre spécifique, on veut TOUT, y compris les manuels
-    query = query.select('*, import_history(category)');
-  }
+
+  // Tri par défaut : plus récents d'abord (par date de création), 
+  // avec l'ID en second critère pour garantir un ordre stable et cohérent.
+  // Utilisation de created_at DESC pour le général, mais ID ASC pour la stabilité au sein d'un import.
+  query = query.order('created_at', { ascending: false }).order('id', { ascending: false });
 
   try {
-    let allData = [];
-    let from = 0;
-    const PAGE_SIZE = 1000;
-    let hasMore = true;
-    const MAX_TOTAL = 5000;
+    if (nopagination === 'true') {
+      // Pour certains cas (export, dashboard clients signés), on peut vouloir tout charger
+      // Mais on limite quand même à un maximum raisonnable pour éviter de tuer le serveur
+      let allData = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      let hasMore = true;
+      const MAX_TOTAL = 10000;
 
-    while (hasMore && allData.length < MAX_TOTAL) {
-      const { data, error } = await query
-        .range(from, from + PAGE_SIZE - 1);
-
-      if (error) throw error;
-      allData = [...allData, ...data];
-
-      if (data.length < PAGE_SIZE) {
-        hasMore = false;
-      } else {
-        from += PAGE_SIZE;
+      while (hasMore && allData.length < MAX_TOTAL) {
+        const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        allData = [...allData, ...data];
+        if (data.length < PAGE_SIZE) hasMore = false;
+        else from += PAGE_SIZE;
       }
+      return res.json({ data: allData, total: allData.length, page: 1, limit: allData.length });
     }
 
-    res.json(allData);
+    // Pagination standard
+    const p = parseInt(page) || 1;
+    const l = parseInt(limit) || 100;
+    const from = (p - 1) * l;
+    const to = from + l - 1;
+
+    const { data, error, count } = await query.range(from, to);
+
+    if (error) throw error;
+
+    res.json({
+      data: data || [],
+      total: count || 0,
+      page: p,
+      limit: l,
+      hasMore: (count || 0) > (from + (data?.length || 0))
+    });
   } catch (error) {
+    console.error('API Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -98,8 +120,8 @@ router.get('/stats', async (req, res) => {
     const { count: smsToday } = await supabase
       .from('prospects')
       .select('*', { count: 'exact', head: true })
-      .gte('sms_sent_at', `${today}T00:00:00`)
-      .lte('sms_sent_at', `${today}T23:59:59`);
+      .gte('sms_sent_at', `${today}T00:00:00.000Z`)
+      .lte('sms_sent_at', `${today}T23:59:59.999Z`);
     
     stats.smsToday = smsToday || 0;
 
@@ -109,7 +131,8 @@ router.get('/stats', async (req, res) => {
       .select('*', { count: 'exact', head: true })
       .eq('event_type', 'status_change')
       .eq('new_value', 'maquette_envoyee')
-      .gte('created_at', `${today}T00:00:00.000Z`);
+      .gte('created_at', `${today}T00:00:00.000Z`)
+      .lte('created_at', `${today}T23:59:59.999Z`);
     
     stats.maquettesToday = maquettesToday || 0;
 
@@ -193,13 +216,19 @@ router.post('/bulk-update', async (req, res) => {
 
     // 2. Logger les changements si le statut a été modifié
     if (updates.statut && oldData) {
-      const logPromises = oldData.map(p => {
-        if (p.statut !== updates.statut) {
-          return logActivity(p.id, 'status_change', p.statut, updates.statut);
-        }
-        return Promise.resolve();
-      });
-      await Promise.all(logPromises);
+      const logsToInsert = oldData
+        .filter(p => p.statut !== updates.statut)
+        .map(p => ({
+          prospect_id: p.id,
+          event_type: 'status_change',
+          old_value: p.statut,
+          new_value: updates.statut
+        }));
+
+      if (logsToInsert.length > 0) {
+        const { error: logError } = await supabase.from('activity_logs').insert(logsToInsert);
+        if (logError) console.error('Bulk activity log error:', logError);
+      }
     }
 
     res.json(data);
@@ -221,6 +250,7 @@ router.get('/kanban', async (req, res) => {
         .from('prospects')
         .select('*')
         .order('updated_at', { ascending: false })
+        .order('id', { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
 
       if (error) throw error;

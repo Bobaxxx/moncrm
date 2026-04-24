@@ -260,8 +260,8 @@ export default function Clients() {
 
   const loadClients = async () => {
     try {
-      const res = await getProspects({ statut: 'client_signe' });
-      setClients(res.data || []);
+      const res = await getProspects({ statut: 'client_signe', nopagination: true });
+      setClients(res.data.data || []);
     } catch (err) {
       console.error(err);
     } finally {

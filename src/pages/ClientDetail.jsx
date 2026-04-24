@@ -56,20 +56,40 @@ export default function ClientDetail() {
 
   const handleSave = async () => {
     setSaving(true);
+    console.log(`[ClientDetail] Saving prospect ${id}...`, { notes, maquette_phone: maquettePhone, adresse });
+    
     try {
-      await updateProspect(id, { notes, maquette_phone: maquettePhone, adresse, siren });
-      setProspect(prev => ({ ...prev, notes, maquette_phone: maquettePhone, adresse, siren }));
-      // Reload logs to see the change if it was logged
+      // Le champ 'siren' semble manquer dans la base de données actuelle (cause l'erreur PGRST204)
+      // On l'exclut temporairement de l'update pour ne pas bloquer les autres champs.
+      const updates = { 
+        notes, 
+        maquette_phone: maquettePhone, 
+        adresse 
+        // siren // Commenté car la colonne n'existe pas encore en DB
+      };
+      
+      const res = await updateProspect(id, updates);
+      console.log('[ClientDetail] Save successful:', res.data);
+      
+      setProspect(prev => ({ ...prev, ...updates }));
+      
+      // Recharger les logs pour voir le changement
       const logsRes = await getProspectLogs(id);
       setLogs(logsRes.data);
+      
+      // Optionnel: Afficher un feedback de succès
     } catch (err) {
-      console.error('Error saving:', err);
-      // Fallback: Si maquette_phone n'existe pas dans la DB, on n'update que notes
+      console.error('[ClientDetail] Error saving:', err.response?.data || err.message);
+      
+      // Fallback plus granulaire: On tente d'enregistrer au moins les notes si le reste échoue
       try {
+         console.log('[ClientDetail] Attempting fallback save with notes only...');
          await updateProspect(id, { notes });
          setProspect(prev => ({ ...prev, notes }));
+         alert("Enregistré (certains champs comme le téléphone de maquette n'ont pas pu être sauvés)");
       } catch (e2) {
-         console.error('Fallback save failed:', e2);
+         console.error('[ClientDetail] Fallback save failed:', e2.response?.data || e2.message);
+         alert("Erreur lors de l'enregistrement");
       }
     } finally {
       setSaving(false);

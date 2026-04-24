@@ -108,7 +108,8 @@ export default function Pipeline() {
     // Persist
     if (sourceCol !== destCol) {
       if (destCol === 'maquette_envoyee') {
-        const movedProspect = columns[sourceCol].find(p => p.id === prospectId);
+        const sourceItems = columns[sourceCol];
+        const movedProspect = sourceItems.find(p => String(p.id) === String(prospectId));
         setPendingMove({ id: prospectId, destCol, prospectName: movedProspect?.nom_entreprise || 'le prospect' });
       } else {
         try {
@@ -122,27 +123,46 @@ export default function Pipeline() {
   };
 
   const handlePhoneConfirm = async (phoneName) => {
+    if (!pendingMove) return;
     const { id, destCol } = pendingMove;
+    
+    console.log(`[Pipeline] Confirming phone link for prospect ${id} to ${destCol} with name: ${phoneName}`);
+    
+    // Close modal immediately
     setPendingMove(null);
 
     // Mettre à jour l'état local immédiatement pour que le nom s'affiche
     setColumns(prev => {
       const next = { ...prev };
+      let found = false;
       for (const col in next) {
-        next[col] = next[col].map(p => p.id === id ? { ...p, maquette_phone: phoneName, statut: destCol } : p);
+        next[col] = next[col].map(p => {
+          // Utiliser == pour supporter nombre vs string
+          if (String(p.id) === String(id)) {
+            found = true;
+            return { ...p, maquette_phone: phoneName, statut: destCol };
+          }
+          return p;
+        });
       }
+      if (!found) console.warn(`[Pipeline] Prospect ${id} not found in any column for local update.`);
       return next;
     });
 
     try {
-      await updateProspect(id, { statut: destCol, maquette_phone: phoneName });
+      console.log(`[Pipeline] Sending PATCH request for prospect ${id}...`);
+      const response = await updateProspect(id, { statut: destCol, maquette_phone: phoneName });
+      console.log(`[Pipeline] PATCH successful:`, response.data);
     } catch (err) {
-      console.error('Update error with phone:', err);
-      // Fallback si la colonne n'existe pas en base
+      console.error('[Pipeline] Update error with phone:', err.response?.data || err.message);
+      
+      // Fallback si la colonne n'existe pas en base ou autre erreur spécifique
       try {
+        console.log(`[Pipeline] Retrying update without maquette_phone for prospect ${id}...`);
         await updateProspect(id, { statut: destCol });
+        console.log(`[Pipeline] Fallback update successful.`);
       } catch (e2) {
-        console.error('Final update error:', e2);
+        console.error('[Pipeline] Final update error:', e2.response?.data || e2.message);
         loadData(); // Rollback total si tout échoue
       }
     }

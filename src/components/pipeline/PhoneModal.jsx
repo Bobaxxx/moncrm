@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Smartphone, X, Save } from 'lucide-react';
 
 export default function PhoneModal({ isOpen, onClose, onConfirm, prospectName }) {
   const [phoneName, setPhoneName] = useState('');
+  
+  // Reset input when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setPhoneName('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

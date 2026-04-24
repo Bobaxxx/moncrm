@@ -43,6 +43,10 @@ export default function Database() {
     category: '',
   });
 
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
   const scrollRef = useRef(null);
   const [scrollPercent, setScrollPercent] = useState(0);
   const [hasOverflow, setHasOverflow] = useState(false);
@@ -54,7 +58,6 @@ export default function Database() {
       setHasOverflow(scrollWidth > clientWidth);
     }
   }, []);
-
   useEffect(() => {
     checkOverflow();
     window.addEventListener('resize', checkOverflow);
@@ -64,7 +67,10 @@ export default function Database() {
   // Synchroniser le filtre category avec activeCategory
   useEffect(() => {
     if (activeCategory) {
-      setFilters(prev => ({ ...prev, category: activeCategory }));
+      setFilters(prev => {
+        if (prev.category === activeCategory) return prev;
+        return { ...prev, category: activeCategory, import_id: '' };
+      });
     }
   }, [activeCategory]);
 
@@ -84,46 +90,89 @@ export default function Database() {
     if (scrollRef.current) {
       const { scrollWidth, clientWidth } = scrollRef.current;
       const maxScroll = scrollWidth - clientWidth;
-      // On retire temporairement le smooth pour que ce soit instantané avec le slider
       scrollRef.current.style.scrollBehavior = 'auto';
       scrollRef.current.scrollLeft = (val / 100) * maxScroll;
       scrollRef.current.style.scrollBehavior = 'smooth';
     }
   };
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [prospectsRes, importsRes, foldersRes] = await Promise.all([
-        getProspects(filters),
-        getImportHistory(),
-        getFolders()
-      ]);
-      setProspects(prospectsRes.data || []);
-      const fetchedImports = importsRes.data || [];
-      setImports(fetchedImports);
-      const fetchedFolders = foldersRes.data || [];
-      setFolders(fetchedFolders);
-      
-      // Auto-sélection de la première catégorie si aucune n'est sélectionnée
-      if (!activeCategory) {
-        if (fetchedFolders.length > 0) {
-          setActiveCategory(fetchedFolders[0].name);
-        } else if (fetchedImports.length > 0) {
-          const categories = [...new Set(fetchedImports.map(i => i.category || 'Serrurier'))];
-          if (categories.length > 0) setActiveCategory(categories[0]);
+  const [isReady, setIsReady] = useState(false);
+
+  // Charger les métadonnées (dossiers, imports) une seule fois au montage
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        const [importsRes, foldersRes] = await Promise.all([
+          getImportHistory(),
+          getFolders()
+        ]);
+        
+        const fetchedImports = importsRes.data || [];
+        const fetchedFolders = foldersRes.data || [];
+        setImports(fetchedImports);
+        setFolders(fetchedFolders);
+
+        // Sélection initiale de la catégorie
+        let initialCategory = activeCategory;
+        if (!initialCategory) {
+          if (fetchedFolders.length > 0) {
+            initialCategory = fetchedFolders[0].name;
+          } else if (fetchedImports.length > 0) {
+            const categories = [...new Set(fetchedImports.map(i => i.category || 'Serrurier'))];
+            if (categories.length > 0) initialCategory = categories[0];
+          }
         }
+        
+        if (initialCategory) {
+          setActiveCategory(initialCategory);
+          setFilters(prev => ({ ...prev, category: initialCategory }));
+        }
+        setIsReady(true);
+      } catch (err) {
+        console.error('Error loading metadata:', err);
+        setIsReady(true); // On met ready quand même pour débloquer l'affichage
       }
+    };
+    loadMetadata();
+  }, []);
+
+  const loadData = useCallback(async (isLoadMore = false) => {
+    if (!isReady) return; // Ne pas charger tant qu'on n'est pas prêt
+    
+    if (isLoadMore) setLoadingMore(true);
+    else setLoading(true);
+
+    try {
+      const currentPage = isLoadMore ? page + 1 : 1;
+      const prospectsRes = await getProspects({ ...filters, page: currentPage, limit: 100 });
+
+      const resData = prospectsRes.data;
+      const newData = resData.data || [];
+      
+      if (isLoadMore) {
+        setProspects(prev => [...prev, ...newData]);
+        setPage(currentPage);
+      } else {
+        setProspects(newData);
+        setPage(1);
+      }
+
+      setHasMore(resData.hasMore);
     } catch (err) {
       console.error('Database load error:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [filters]);
+  }, [filters, page, isReady]);
 
+  // Déclencher le chargement quand les filtres changent
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (isReady) {
+      loadData(false);
+    }
+  }, [filters, isReady]); 
+
 
   const handleUpdate = async (id, data) => {
     try {
@@ -240,34 +289,45 @@ export default function Database() {
     }
   };
 
-  const handleDownloadCsv = () => {
-    if (prospects.length === 0) {
-      alert("Aucune donnée à exporter");
-      return;
+  const handleDownloadCsv = async () => {
+    setLoading(true);
+    try {
+      const res = await getProspects({ ...filters, nopagination: true });
+      const allProspects = res.data.data || [];
+
+      if (allProspects.length === 0) {
+        alert("Aucune donnée à exporter");
+        return;
+      }
+
+      const headers = ["Entreprise", "Telephone", "Statut", "Ville", "Adresse", "Site Web"];
+      const csvRows = [
+        headers.join(','),
+        ...allProspects.map(p => [
+          `"${(p.nom_entreprise || '').replace(/"/g, '""')}"`,
+          `"${(p.telephone || '').replace(/"/g, '""')}"`,
+          `"${(STATUT_LABELS[p.statut] || p.statut || '').replace(/"/g, '""')}"`,
+          `"${(p.departement || '').replace(/"/g, '""')}"`,
+          `"${(p.adresse || '').replace(/"/g, '""')}"`,
+          `"${(p.url_site || '').replace(/"/g, '""')}"`
+        ].join(','))
+      ];
+
+      const blob = new Blob(["\ufeff" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `export_prospects_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Export error:', err);
+      alert('Erreur lors de l\'export');
+    } finally {
+      setLoading(false);
     }
-
-    const headers = ["Entreprise", "Telephone", "Statut", "Ville", "Adresse", "Site Web"];
-    const csvRows = [
-      headers.join(','),
-      ...prospects.map(p => [
-        `"${(p.nom_entreprise || '').replace(/"/g, '""')}"`,
-        `"${(p.telephone || '').replace(/"/g, '""')}"`,
-        `"${(STATUT_LABELS[p.statut] || p.statut || '').replace(/"/g, '""')}"`,
-        `"${(p.departement || '').replace(/"/g, '""')}"`,
-        `"${(p.adresse || '').replace(/"/g, '""')}"`,
-        `"${(p.url_site || '').replace(/"/g, '""')}"`
-      ].join(','))
-    ];
-
-    const blob = new Blob(["\ufeff" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `export_prospects_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const handleAddFolder = async () => {
@@ -377,12 +437,42 @@ export default function Database() {
               <div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
-            <ProspectTable 
-              prospects={prospects} 
-              onUpdate={handleUpdate} 
-              onBulkUpdate={handleBulkUpdate}
-              onDelete={handleDelete} 
-            />
+            <>
+              <ProspectTable 
+                prospects={prospects} 
+                onUpdate={handleUpdate} 
+                onBulkUpdate={handleBulkUpdate}
+                onDelete={handleDelete} 
+              />
+              
+              {hasMore && (
+                <div className="p-8 flex justify-center">
+                  <button 
+                    onClick={() => loadData(true)}
+                    disabled={loadingMore}
+                    className="px-8 py-3 bg-surface-900 border border-surface-800 rounded-2xl text-primary-400 font-bold text-xs uppercase tracking-widest hover:bg-surface-800 transition-all disabled:opacity-50 flex items-center gap-3 shadow-xl"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                        Chargement...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Charger plus de prospects
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+              
+              {!hasMore && prospects.length > 0 && (
+                <div className="p-8 text-center text-[10px] text-surface-600 uppercase font-bold tracking-widest opacity-50">
+                  Fin de la liste — {prospects.length} prospects affichés
+                </div>
+              )}
+            </>
           )}
         </div>
 

@@ -39,8 +39,8 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
 
   const fetchProspects = async () => {
     try {
-      const response = await getProspects({ statut: 'client_signe' });
-      setProspects(response.data || []);
+      const response = await getProspects({ statut: 'client_signe', nopagination: true });
+      setProspects(response.data.data || []);
     } catch (err) {
       console.error('Error fetching clients:', err);
     }
