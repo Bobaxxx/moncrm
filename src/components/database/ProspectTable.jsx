@@ -130,8 +130,8 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
 
   return (
     <div className="overflow-hidden transition-all duration-300 relative select-none">
-      <div className="overflow-x-auto no-scrollbar">
-        <table ref={tableRef} className="w-full text-sm text-left border-collapse">
+      <div className="overflow-x-auto sleek-scrollbar-x pb-2">
+        <table ref={tableRef} className="w-full min-w-[1000px] text-sm text-left border-collapse">
           <thead className="sticky top-0 z-20 bg-surface-950 shadow-[0_1px_0_rgba(255,255,255,0.05)]">
             <tr className="border-b border-surface-800">
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[250px]">Entreprise</th>
@@ -139,7 +139,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[120px]">Statut</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Ville</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider">Site Web</th>
-              <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[100px] text-right">Actions</th>
+              <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[160px] text-right sticky right-0 bg-surface-950 z-20 shadow-[-12px_0_15px_-10px_rgba(0,0,0,0.5)]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-800/20">
@@ -305,7 +305,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                   </td>
 
                   {/* Actions */}
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right sticky right-0 bg-surface-950/95 backdrop-blur-md z-10 shadow-[-12px_0_15px_-10px_rgba(0,0,0,0.5)] group-hover:bg-surface-900/90 transition-colors">
                     <div className="flex items-center justify-end gap-1.5">
                       {isEditing ? (
                         <>
