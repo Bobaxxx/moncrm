@@ -1,6 +1,22 @@
+import { useState, useEffect } from 'react';
 import { MessageSquare, Send, Calendar, Clock, CheckCircle2 } from 'lucide-react';
+import { getProspectStats } from '../services/api';
 
 export default function Marketing() {
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getProspectStats()
+      .then(res => {
+        setStats(res.data);
+      })
+      .catch(err => console.error('Error fetching stats:', err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const enAttente = stats?.byStatut?.find(s => s.statut === 'a_contacter')?.count || 0;
+
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 animate-fade-in">
       <div className="flex items-center justify-between mb-10">
@@ -22,16 +38,20 @@ export default function Marketing() {
             </div>
             <span className="text-xs font-bold text-surface-400 uppercase tracking-widest">Total Envoyés</span>
           </div>
-          <h4 className="text-3xl font-bold text-white">0</h4>
+          <h4 className="text-3xl font-bold text-white">
+            {loading ? '...' : (stats?.smsTotal || 0)}
+          </h4>
         </div>
         <div className="glass-card p-6 border-surface-800/40">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-emerald-500/10 rounded-lg">
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
             </div>
-            <span className="text-xs font-bold text-surface-400 uppercase tracking-widest">Taux d'ouverture</span>
+            <span className="text-xs font-bold text-surface-400 uppercase tracking-widest">Taux de réponse</span>
           </div>
-          <h4 className="text-3xl font-bold text-emerald-400">0%</h4>
+          <h4 className="text-3xl font-bold text-emerald-400">
+            {loading ? '...' : (stats?.smsTotal ? Math.round(((stats?.maquettesTotal || 0) / stats.smsTotal) * 100) : 0)}%
+          </h4>
         </div>
         <div className="glass-card p-6 border-surface-800/40">
           <div className="flex items-center gap-3 mb-4">
@@ -40,7 +60,9 @@ export default function Marketing() {
             </div>
             <span className="text-xs font-bold text-surface-400 uppercase tracking-widest">En attente</span>
           </div>
-          <h4 className="text-3xl font-bold text-amber-400">0</h4>
+          <h4 className="text-3xl font-bold text-amber-400">
+            {loading ? '...' : enAttente}
+          </h4>
         </div>
       </div>
 

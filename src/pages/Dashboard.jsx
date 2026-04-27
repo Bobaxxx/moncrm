@@ -148,7 +148,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-baseline gap-2">
             <p className="text-3xl font-bold text-surface-50">
-              {stats?.byStatut?.find(s => s.statut === 'sms_envoye')?.count || 0}
+              {stats?.smsTotal || 0}
             </p>
             <span className="text-[10px] text-amber-500 font-bold uppercase tracking-tight">
               Total
@@ -170,7 +170,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-baseline gap-2">
             <p className="text-3xl font-bold text-surface-50">
-              {stats?.byStatut?.find(s => s.statut === 'maquette_envoyee')?.count || 0}
+              {stats?.maquettesTotal || 0}
             </p>
             <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-tight">
               Total

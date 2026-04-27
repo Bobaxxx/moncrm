@@ -125,6 +125,15 @@ router.get('/stats', async (req, res) => {
     
     stats.smsToday = smsToday || 0;
 
+    // Ajout des stats SMS totales (basées sur l'historique pour ne pas baisser)
+    const { count: smsTotal } = await supabase
+      .from('activity_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_type', 'status_change')
+      .eq('new_value', 'sms_envoye');
+    
+    stats.smsTotal = smsTotal || 0;
+
     // Ajout des stats Maquettes quotidiennes
     const { count: maquettesToday } = await supabase
       .from('activity_logs')
@@ -135,6 +144,15 @@ router.get('/stats', async (req, res) => {
       .lte('created_at', `${today}T23:59:59`);
     
     stats.maquettesToday = maquettesToday || 0;
+
+    // Ajout des stats Maquettes totales
+    const { count: maquettesTotal } = await supabase
+      .from('activity_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_type', 'status_change')
+      .eq('new_value', 'maquette_envoyee');
+    
+    stats.maquettesTotal = maquettesTotal || 0;
 
     res.json(stats);
   } catch (error) {
