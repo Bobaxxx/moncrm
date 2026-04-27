@@ -15,7 +15,8 @@ router.get('/daily-report', async (req, res) => {
       .select('new_value, created_at')
       .eq('event_type', 'status_change')
       .gte('created_at', startDate.toISOString())
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false })
+      .limit(10000);
 
     if (error) throw error;
 
