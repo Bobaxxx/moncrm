@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS prospects (
   maquette_phone TEXT,
   siren TEXT,
   sms_sent_at TIMESTAMPTZ,
+  maquette_sent_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT fk_import FOREIGN KEY (import_id) REFERENCES import_history(id) ON DELETE SET NULL

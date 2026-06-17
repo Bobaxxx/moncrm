@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Phone, MapPin, Globe, GripVertical, ExternalLink, ChevronDown, ChevronUp, Trash2, UserSearch, Smartphone } from 'lucide-react';
+import { Phone, MapPin, Globe, GripVertical, ExternalLink, ChevronDown, ChevronUp, Trash2, UserSearch, Smartphone, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SOURCE_LABELS, SOURCE_BADGE_CLASS } from '../../utils/constants';
 import { deleteProspect } from '../../services/api';
@@ -42,6 +42,12 @@ export default function ProspectCard({ prospect, onUpdate, onDelete, isDragging 
               <span className="text-[10px] text-surface-500 flex items-center gap-0.5">
                 <MapPin className="w-3 h-3" />
                 {prospect.departement}
+              </span>
+            )}
+            {prospect.maquette_sent_at && (
+              <span className="text-[10px] text-cyan-400 font-bold bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20 flex items-center gap-1">
+                <Send className="w-2.5 h-2.5" />
+                Envoyé le {new Date(prospect.maquette_sent_at).toLocaleDateString('fr-FR')}
               </span>
             )}
           </div>

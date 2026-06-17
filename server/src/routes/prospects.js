@@ -224,6 +224,11 @@ router.post('/bulk-update', async (req, res) => {
       finalUpdates.sms_sent_at = new Date().toISOString();
     }
 
+    // Si on marque comme maquette envoyée, on ajoute le timestamp
+    if (updates.statut === 'maquette_envoyee') {
+      finalUpdates.maquette_sent_at = new Date().toISOString();
+    }
+
     const { data, error } = await supabase
       .from('prospects')
       .update(finalUpdates)
@@ -325,6 +330,11 @@ router.patch('/:id', async (req, res) => {
     // Si on passe au statut SMS envoyé, on date l'envoi
     if (req.body.statut === 'sms_envoye') {
       updates.sms_sent_at = new Date().toISOString();
+    }
+
+    // Si on passe au statut maquette envoyée, on date l'envoi
+    if (req.body.statut === 'maquette_envoyee') {
+      updates.maquette_sent_at = new Date().toISOString();
     }
 
     const { data, error } = await supabase

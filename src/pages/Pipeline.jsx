@@ -92,6 +92,9 @@ export default function Pipeline() {
       const sourceItems = [...(next[sourceCol] || [])];
       const [moved] = sourceItems.splice(source.index, 1);
       moved.statut = destCol;
+      if (destCol === 'maquette_envoyee') {
+        moved.maquette_sent_at = new Date().toISOString();
+      }
 
       if (sourceCol === destCol) {
         sourceItems.splice(destination.index, 0, moved);
@@ -140,7 +143,12 @@ export default function Pipeline() {
           // Utiliser == pour supporter nombre vs string
           if (String(p.id) === String(id)) {
             found = true;
-            return { ...p, maquette_phone: phoneName, statut: destCol };
+            return { 
+              ...p, 
+              maquette_phone: phoneName, 
+              statut: destCol, 
+              maquette_sent_at: destCol === 'maquette_envoyee' ? new Date().toISOString() : p.maquette_sent_at 
+            };
           }
           return p;
         });
