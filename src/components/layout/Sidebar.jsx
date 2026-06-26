@@ -4,6 +4,7 @@ import AddProspectModal from '../database/AddProspectModal';
 import { 
   Database, 
   LayoutDashboard, 
+  ListTodo,
   Upload, 
   MessageSquare, 
   Calendar, 
@@ -22,6 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const NAV_ITEMS = [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord', desc: 'Vue d\'ensemble' },
+  { path: '/todo', icon: ListTodo, label: 'Tâches du jour', desc: 'Ma liste quotidienne' },
   { path: '/database', icon: Database, label: 'Base de données', desc: 'Gestion des prospects' },
   { path: '/pipeline', icon: TrendingUp, label: 'Pipeline', desc: 'Suivi des ventes' },
   { path: '/clients', icon: Star, label: 'Clients Signés', desc: 'Contrats & Facturation' },

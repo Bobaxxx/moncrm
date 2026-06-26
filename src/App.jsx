@@ -4,6 +4,7 @@ import Database from './pages/Database';
 import Pipeline from './pages/Pipeline';
 import Import from './pages/Import';
 import Dashboard from './pages/Dashboard';
+import TodoList from './pages/TodoList';
 import Planning from './pages/Planning';
 import Analytics from './pages/Analytics';
 import ClientDetail from './pages/ClientDetail';
@@ -22,6 +23,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/todo" element={<TodoList />} />
           <Route path="/database" element={<Database />} />
           <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/analytics" element={<Analytics />} />
