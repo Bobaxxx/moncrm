@@ -60,17 +60,18 @@ router.get('/summary', async (req, res) => {
         
         const { data, error } = await supabase
             .from('activity_logs')
-            .select('new_value')
-            .eq('event_type', 'status_change')
+            .select('new_value, event_type')
+            .in('event_type', ['status_change', 'call_status_change'])
             .gte('created_at', `${today}T00:00:00`)
             .lte('created_at', `${today}T23:59:59`);
 
         if (error) throw error;
 
         const summary = {
-            sms: data.filter(l => l.new_value === 'sms_envoye').length,
-            maquettes: data.filter(l => l.new_value === 'maquette_envoyee').length,
-            signatures: data.filter(l => l.new_value === 'client_signe').length
+            sms: data.filter(l => l.event_type === 'status_change' && l.new_value === 'sms_envoye').length,
+            maquettes: data.filter(l => l.event_type === 'status_change' && l.new_value === 'maquette_envoyee').length,
+            signatures: data.filter(l => l.event_type === 'status_change' && l.new_value === 'client_signe').length,
+            appels: data.filter(l => l.event_type === 'call_status_change' && ['appele', 'a_rappeler', 'message_laisse'].includes(l.new_value)).length
         };
 
         res.json(summary);

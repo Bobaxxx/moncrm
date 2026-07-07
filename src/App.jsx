@@ -12,6 +12,7 @@ import Clients from './pages/Clients';
 import Facturation from './pages/Facturation';
 import Products from './pages/Products';
 import Login from './pages/Login';
+import Calls from './pages/Calls';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
@@ -24,6 +25,7 @@ function AppContent() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/todo" element={<TodoList />} />
+          <Route path="/calls" element={<Calls />} />
           <Route path="/database" element={<Database />} />
           <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/analytics" element={<Analytics />} />

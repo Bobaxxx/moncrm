@@ -5,8 +5,8 @@ const router = Router();
 
 // GET /api/prospects - Liste avec filtres et pagination
 router.get('/', async (req, res) => {
-  const { search, statut, departement, source, category, page, limit, nopagination, import_id } = req.query;
-  console.log('GET /api/prospects - Filters:', { search, statut, departement, source, category, page, limit, nopagination, import_id });
+  const { search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id } = req.query;
+  console.log('GET /api/prospects - Filters:', { search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id });
 
   let query;
   
@@ -25,6 +25,9 @@ router.get('/', async (req, res) => {
   }
   if (statut) {
     query = query.ilike('statut', statut);
+  }
+  if (statut_appel) {
+    query = query.eq('statut_appel', statut_appel);
   }
   if (departement) {
     query = query.eq('departement', departement);
@@ -321,7 +324,7 @@ router.patch('/:id', async (req, res) => {
     // 1. Récupérer l'ancien statut pour l'historique
     const { data: oldProspect } = await supabase
       .from('prospects')
-      .select('statut')
+      .select('statut, statut_appel')
       .eq('id', id)
       .single();
 
@@ -346,9 +349,14 @@ router.patch('/:id', async (req, res) => {
 
     if (error) throw error;
 
-    // 2. Logger le changement de statut
+    // 2. Logger le changement de statut du pipeline
     if (req.body.statut && oldProspect && oldProspect.statut !== req.body.statut) {
       await logActivity(id, 'status_change', oldProspect.statut, req.body.statut);
+    }
+
+    // 3. Logger le changement de statut d'appel
+    if (req.body.statut_appel && oldProspect && oldProspect.statut_appel !== req.body.statut_appel) {
+      await logActivity(id, 'call_status_change', oldProspect.statut_appel, req.body.statut_appel);
     }
 
     res.json(data);
