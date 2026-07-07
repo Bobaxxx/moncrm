@@ -178,7 +178,9 @@ export default function Calls() {
         params.category = filters.category;
       }
 
-      params.statut_appel = filters.statut_appel;
+      if (filters.statut_appel !== 'all') {
+        params.statut_appel = filters.statut_appel;
+      }
 
       const res = await getProspects(params);
       const resData = res.data;
