@@ -297,9 +297,23 @@ export default function Calls() {
         couleur: '#6366f1' // Indigo
       });
 
-      // 2. Set prospect status to 'a_rappeler'
-      await handleUpdateStatus(schedulingProspect, 'a_rappeler');
+      // 2. Set prospect status to 'a_rappeler' and copy notes to prospect
+      const updatedNotes = callbackNotes 
+        ? (schedulingProspect.notes ? `${schedulingProspect.notes}\n${callbackNotes}` : callbackNotes)
+        : schedulingProspect.notes;
+
+      setProspects(prev => prev.map(p => p.id === schedulingProspect.id ? { 
+        ...p, 
+        statut_appel: 'a_rappeler',
+        notes: updatedNotes
+      } : p));
       
+      await updateProspect(schedulingProspect.id, { 
+        statut_appel: 'a_rappeler',
+        notes: updatedNotes
+      });
+      
+      loadStats();
       setSchedulingProspect(null);
     } catch (err) {
       console.error('Error scheduling callback:', err);
@@ -512,7 +526,11 @@ export default function Calls() {
                             )}
                           </div>
                           <textarea
-                            defaultValue={prospect.notes || ''}
+                            value={prospect.notes || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, notes: val } : p));
+                            }}
                             onBlur={(e) => handleSaveNotes(prospect.id, e.target.value)}
                             placeholder="Ajouter une note (besoins, relances...)"
                             rows="2"
