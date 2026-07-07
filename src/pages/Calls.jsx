@@ -19,7 +19,6 @@ import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
-  Settings2,
   Plus
 } from 'lucide-react';
 import { 
@@ -47,6 +46,11 @@ export default function Calls() {
   
   // Note auto-save feedback state
   const [savingNotesId, setSavingNotesId] = useState(null);
+
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Tab scroll states
   const scrollRef = useRef(null);
@@ -155,15 +159,17 @@ export default function Calls() {
   };
 
   // Load Prospects
-  const loadProspects = useCallback(async () => {
+  const loadProspects = useCallback(async (isLoadMore = false) => {
+    if (isLoadMore) setLoadingMore(true);
+    else setLoading(true);
+
     try {
-      setLoading(true);
-      
-      // Determine backend parameters based on selected filter
+      const currentPage = isLoadMore ? page + 1 : 1;
       const params = {
         search: filters.search,
         departement: filters.departement,
-        nopagination: 'true', // load full list for calling queue
+        page: currentPage,
+        limit: 50,
       };
 
       if (filters.import_id) {
@@ -172,27 +178,28 @@ export default function Calls() {
         params.category = filters.category;
       }
 
-      if (filters.statut_appel !== 'to_call_all' && filters.statut_appel !== 'all') {
-        params.statut_appel = filters.statut_appel;
-      }
+      params.statut_appel = filters.statut_appel;
 
       const res = await getProspects(params);
-      let list = res.data.data || [];
+      const resData = res.data;
+      const list = resData.data || [];
 
-      // If "to_call_all" is selected, filter frontend-side to show only prospects needing calls
-      if (filters.statut_appel === 'to_call_all') {
-        list = list.filter(p => 
-          ['a_appeler', 'a_rappeler', 'message_laisse'].includes(p.statut_appel || 'a_appeler')
-        );
+      if (isLoadMore) {
+        setProspects(prev => [...prev, ...list]);
+        setPage(currentPage);
+      } else {
+        setProspects(list);
+        setPage(1);
       }
 
-      setProspects(list);
+      setHasMore(resData.hasMore);
     } catch (err) {
       console.error('Error loading prospects:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [filters]);
+  }, [filters, page]);
 
   useEffect(() => {
     loadMetadata();
@@ -206,9 +213,10 @@ export default function Calls() {
     }
   }, [activeCategory]);
 
+  // Trigger loading when filters change
   useEffect(() => {
-    loadProspects();
-  }, [loadProspects]);
+    loadProspects(false);
+  }, [filters]);
 
   // Update call status
   const handleUpdateStatus = async (prospect, newStatus) => {
@@ -223,7 +231,7 @@ export default function Calls() {
       
     } catch (err) {
       console.error('Error updating prospect status:', err);
-      loadProspects(); // Rollback
+      loadProspects(false); // Rollback
     }
   };
 
@@ -420,7 +428,7 @@ export default function Calls() {
       {/* Main Calling Queue Section (Height-adaptive) */}
       <div className="flex-1 min-h-0 bg-surface-900/20 border border-surface-800/40 rounded-xl overflow-hidden flex flex-col">
         <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-          {loading ? (
+          {loading && prospects.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
             </div>
@@ -433,144 +441,169 @@ export default function Calls() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
-              {prospects.map((prospect) => {
-                const statusColorObj = STATUT_APPEL_COLORS[prospect.statut_appel || 'a_appeler'] || STATUT_APPEL_COLORS.a_appeler;
-                
-                return (
-                  <div 
-                    key={prospect.id} 
-                    className="glass-card p-5 hover:border-surface-800 transition-all group flex flex-col md:flex-row gap-5 items-start md:items-stretch"
-                  >
-                    {/* Left Side: Enterprise Details */}
-                    <div className="flex-1 min-w-0 space-y-2.5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="text-base font-bold text-white truncate group-hover:text-primary-400 transition-colors">
-                            {prospect.nom_entreprise}
-                          </h3>
-                          <div className="flex flex-wrap gap-2 items-center mt-1 text-xs text-surface-500">
-                            {prospect.departement && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3 text-primary-400" />
-                                {prospect.departement}
-                              </span>
-                            )}
-                            {prospect.import_history?.category && (
-                              <span className="bg-surface-900 border border-surface-800 px-2 py-0.5 rounded text-[10px] font-medium text-surface-400">
-                                {prospect.import_history.category}
-                              </span>
+            <>
+              <div className="grid grid-cols-1 gap-4">
+                {prospects.map((prospect) => {
+                  const statusColorObj = STATUT_APPEL_COLORS[prospect.statut_appel || 'a_appeler'] || STATUT_APPEL_COLORS.a_appeler;
+                  
+                  return (
+                    <div 
+                      key={prospect.id} 
+                      className="glass-card p-5 hover:border-surface-800 transition-all group flex flex-col md:flex-row gap-5 items-start md:items-stretch"
+                    >
+                      {/* Left Side: Enterprise Details */}
+                      <div className="flex-1 min-w-0 space-y-2.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="text-base font-bold text-white truncate group-hover:text-primary-400 transition-colors">
+                              {prospect.nom_entreprise}
+                            </h3>
+                            <div className="flex flex-wrap gap-2 items-center mt-1 text-xs text-surface-500">
+                              {prospect.departement && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3 text-primary-400" />
+                                  {prospect.departement}
+                                </span>
+                              )}
+                              {prospect.import_history?.category && (
+                                <span className="bg-surface-900 border border-surface-800 px-2 py-0.5 rounded text-[10px] font-medium text-surface-400">
+                                  {prospect.import_history.category}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Current Status Badge */}
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${statusColorObj.bg} ${statusColorObj.text} ${statusColorObj.border}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusColorObj.dot}`} />
+                            {STATUT_APPEL_LABELS[prospect.statut_appel || 'a_appeler']}
+                          </span>
+                        </div>
+
+                        {/* Phone block */}
+                        <div className="flex items-center gap-3">
+                          <a 
+                            href={`tel:${prospect.telephone}`}
+                            className="flex items-center gap-2 text-primary-400 hover:text-primary-300 font-bold text-sm bg-primary-500/5 hover:bg-primary-500/10 border border-primary-500/10 hover:border-primary-500/20 px-3.5 py-1.5 rounded-xl transition-all"
+                          >
+                            <Phone className="w-4 h-4" />
+                            {prospect.telephone}
+                          </a>
+                          <button 
+                            id={`copy-btn-${prospect.id}`}
+                            onClick={() => handleCopyPhone(prospect.telephone, prospect.id)}
+                            className="p-2 text-surface-500 hover:text-white rounded-lg hover:bg-surface-800 transition-all"
+                            title="Copier le numéro"
+                          >
+                            <Clipboard className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Quick Notes Textarea */}
+                        <div className="pt-2">
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider flex items-center gap-1">
+                              <FileText className="w-3 h-3 text-surface-500" /> Notes du prospect
+                            </label>
+                            {savingNotesId === prospect.id && (
+                              <span className="text-[9px] text-primary-400 animate-pulse">Sauvegarde...</span>
                             )}
                           </div>
+                          <textarea
+                            defaultValue={prospect.notes || ''}
+                            onBlur={(e) => handleSaveNotes(prospect.id, e.target.value)}
+                            placeholder="Ajouter une note (besoins, relances...)"
+                            rows="2"
+                            className="input-field text-xs py-2 px-3 resize-none bg-surface-950/40"
+                          />
                         </div>
-                        
-                        {/* Current Status Badge */}
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${statusColorObj.bg} ${statusColorObj.text} ${statusColorObj.border}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${statusColorObj.dot}`} />
-                          {STATUT_APPEL_LABELS[prospect.statut_appel || 'a_appeler']}
-                        </span>
                       </div>
 
-                      {/* Phone block */}
-                      <div className="flex items-center gap-3">
-                        <a 
-                          href={`tel:${prospect.telephone}`}
-                          className="flex items-center gap-2 text-primary-400 hover:text-primary-300 font-bold text-sm bg-primary-500/5 hover:bg-primary-500/10 border border-primary-500/10 hover:border-primary-500/20 px-3.5 py-1.5 rounded-xl transition-all"
-                        >
-                          <Phone className="w-4 h-4" />
-                          {prospect.telephone}
-                        </a>
+                      {/* Divider line */}
+                      <div className="w-full md:w-px bg-surface-900 md:my-0 my-1 self-stretch" />
+
+                      {/* Right Side: Quick Action Buttons */}
+                      <div className="w-full md:w-64 flex flex-col justify-center gap-2">
+                        <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest text-center md:text-left mb-1">
+                          Résultat de l'appel
+                        </p>
+                        
                         <button 
-                          id={`copy-btn-${prospect.id}`}
-                          onClick={() => handleCopyPhone(prospect.telephone, prospect.id)}
-                          className="p-2 text-surface-500 hover:text-white rounded-lg hover:bg-surface-800 transition-all"
-                          title="Copier le numéro"
+                          onClick={() => handleUpdateStatus(prospect, 'appele')}
+                          className={`w-full py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-between transition-all 
+                            ${prospect.statut_appel === 'appele' 
+                              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' 
+                              : 'bg-surface-900 border-surface-800 text-surface-300 hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-400'}`}
                         >
-                          <Clipboard className="w-3.5 h-3.5" />
+                          <span>✔️ Appelé (Répondu)</span>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button 
+                          onClick={() => handleUpdateStatus(prospect, 'message_laisse')}
+                          className={`w-full py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-between transition-all 
+                            ${prospect.statut_appel === 'message_laisse' 
+                              ? 'bg-slate-500/20 border-slate-500/50 text-slate-400' 
+                              : 'bg-surface-900 border-surface-800 text-surface-300 hover:bg-slate-500/10 hover:border-slate-500/20 hover:text-slate-400'}`}
+                        >
+                          <span>✉️ Message laissé</span>
+                          <MessageSquare className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button 
+                          onClick={() => openScheduler(prospect)}
+                          className={`w-full py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-between transition-all 
+                            ${prospect.statut_appel === 'a_rappeler' 
+                              ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400' 
+                              : 'bg-surface-900 border-surface-800 text-surface-300 hover:bg-indigo-500/10 hover:border-indigo-500/20 hover:text-indigo-400'}`}
+                        >
+                          <span>📅 À rappeler (Programmer)</span>
+                          <Clock className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button 
+                          onClick={() => handleUpdateStatus(prospect, 'pas_interesse')}
+                          className={`w-full py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-between transition-all 
+                            ${prospect.statut_appel === 'pas_interesse' 
+                              ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' 
+                              : 'bg-surface-900 border-surface-800 text-surface-300 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400'}`}
+                        >
+                          <span>❌ Pas intéressé</span>
+                          <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
-
-                      {/* Quick Notes Textarea */}
-                      <div className="pt-2">
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider flex items-center gap-1">
-                            <FileText className="w-3 h-3 text-surface-500" /> Notes du prospect
-                          </label>
-                          {savingNotesId === prospect.id && (
-                            <span className="text-[9px] text-primary-400 animate-pulse">Sauvegarde...</span>
-                          )}
-                        </div>
-                        <textarea
-                          defaultValue={prospect.notes || ''}
-                          onBlur={(e) => handleSaveNotes(prospect.id, e.target.value)}
-                          placeholder="Ajouter une note (besoins, relances...)"
-                          rows="2"
-                          className="input-field text-xs py-2 px-3 resize-none bg-surface-950/40"
-                        />
-                      </div>
                     </div>
+                  );
+                })}
+              </div>
 
-                    {/* Divider line */}
-                    <div className="w-full md:w-px bg-surface-900 md:my-0 my-1 self-stretch" />
-
-                    {/* Right Side: Quick Action Buttons */}
-                    <div className="w-full md:w-64 flex flex-col justify-center gap-2">
-                      <p className="text-[10px] font-bold text-surface-500 uppercase tracking-widest text-center md:text-left mb-1">
-                        Résultat de l'appel
-                      </p>
-                      
-                      <button 
-                        onClick={() => handleUpdateStatus(prospect, 'appele')}
-                        className={`w-full py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-between transition-all 
-                          ${prospect.statut_appel === 'appele' 
-                            ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' 
-                            : 'bg-surface-900 border-surface-800 text-surface-300 hover:bg-emerald-500/10 hover:border-emerald-500/20 hover:text-emerald-400'}`}
-                      >
-                        <span>✔️ Appelé (Répondu)</span>
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button 
-                        onClick={() => handleUpdateStatus(prospect, 'message_laisse')}
-                        className={`w-full py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-between transition-all 
-                          ${prospect.statut_appel === 'message_laisse' 
-                            ? 'bg-slate-500/20 border-slate-500/50 text-slate-400' 
-                            : 'bg-surface-900 border-surface-800 text-surface-300 hover:bg-slate-500/10 hover:border-slate-500/20 hover:text-slate-400'}`}
-                      >
-                        <span>✉️ Message laissé</span>
-                        <MessageSquare className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button 
-                        onClick={() => openScheduler(prospect)}
-                        className={`w-full py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-between transition-all 
-                          ${prospect.statut_appel === 'a_rappeler' 
-                            ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-400' 
-                            : 'bg-surface-900 border-surface-800 text-surface-300 hover:bg-indigo-500/10 hover:border-indigo-500/20 hover:text-indigo-400'}`}
-                      >
-                        <span>📅 À rappeler (Programmer)</span>
-                        <Clock className="w-3.5 h-3.5" />
-                      </button>
-
-                      <button 
-                        onClick={() => handleUpdateStatus(prospect, 'pas_interesse')}
-                        className={`w-full py-2 px-3 rounded-xl border font-bold text-xs flex items-center justify-between transition-all 
-                          ${prospect.statut_appel === 'pas_interesse' 
-                            ? 'bg-rose-500/20 border-rose-500/50 text-rose-400' 
-                            : 'bg-surface-900 border-surface-800 text-surface-300 hover:bg-rose-500/10 hover:border-rose-500/20 hover:text-rose-400'}`}
-                      >
-                        <span>❌ Pas intéressé</span>
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+              {/* Load More Button */}
+              {hasMore && (
+                <div className="p-4 flex justify-center">
+                  <button 
+                    onClick={() => loadProspects(true)}
+                    disabled={loadingMore}
+                    className="px-8 py-3 bg-surface-900 border border-surface-800 rounded-2xl text-primary-400 font-bold text-xs uppercase tracking-widest hover:bg-surface-800 transition-all disabled:opacity-50 flex items-center gap-3 shadow-xl"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-primary-500" />
+                        Chargement...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        Charger plus de prospects
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Bottom Tab Bar (Identical layout to Database.jsx) */}
+        {/* Bottom Tab Bar */}
         <div className="bg-surface-950 border-t border-surface-800/60 h-10 flex items-center px-1 flex-shrink-0">
           <div className="flex items-center gap-1 border-r border-surface-800 px-2 mr-2">
             <button onClick={() => scrollTabs('left')} className="p-1 hover:bg-surface-800 rounded transition-colors text-surface-500">

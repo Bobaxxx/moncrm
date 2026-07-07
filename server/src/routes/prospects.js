@@ -27,7 +27,11 @@ router.get('/', async (req, res) => {
     query = query.ilike('statut', statut);
   }
   if (statut_appel) {
-    query = query.eq('statut_appel', statut_appel);
+    if (statut_appel === 'to_call_all') {
+      query = query.or('statut_appel.in.(a_appeler,a_rappeler,message_laisse),statut_appel.is.null');
+    } else {
+      query = query.eq('statut_appel', statut_appel);
+    }
   }
   if (departement) {
     query = query.eq('departement', departement);
