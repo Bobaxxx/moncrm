@@ -71,7 +71,7 @@ router.get('/summary', async (req, res) => {
             sms: data.filter(l => l.event_type === 'status_change' && l.new_value === 'sms_envoye').length,
             maquettes: data.filter(l => l.event_type === 'status_change' && l.new_value === 'maquette_envoyee').length,
             signatures: data.filter(l => l.event_type === 'status_change' && l.new_value === 'client_signe').length,
-            appels: data.filter(l => l.event_type === 'call_status_change' && ['appele', 'a_rappeler', 'message_laisse'].includes(l.new_value)).length
+            appels: data.filter(l => l.event_type === 'call_status_change' && ['appele', 'a_rappeler', 'message_laisse', 'pas_interesse'].includes(l.new_value)).length
         };
 
         res.json(summary);
