@@ -80,4 +80,56 @@ router.get('/summary', async (req, res) => {
     }
 });
 
+// GET /api/analytics/calls-report
+router.get('/calls-report', async (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    const { data, error } = await supabase
+      .from('activity_logs')
+      .select('new_value, created_at')
+      .eq('event_type', 'call_status_change')
+      .gte('created_at', startDate.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10000);
+
+    if (error) throw error;
+
+    // Grouping by day and status
+    const report = {};
+    
+    // Initialise les derniers jours
+    for (let i = 0; i <= days; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        report[dateStr] = {
+            date: dateStr,
+            appele: 0,
+            a_rappeler: 0,
+            message_laisse: 0,
+            pas_interesse: 0,
+            total: 0
+        };
+    }
+
+    data.forEach(log => {
+      const logDate = new Date(log.created_at);
+      const dateStr = logDate.toISOString().split('T')[0];
+      if (report[dateStr] && report[dateStr][log.new_value] !== undefined) {
+        report[dateStr][log.new_value]++;
+        report[dateStr].total++;
+      }
+    });
+
+    const result = Object.values(report).sort((a, b) => a.date.localeCompare(b.date));
+    res.json(result);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

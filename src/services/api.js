@@ -32,6 +32,7 @@ export const bulkUpdateProspects = (ids, updates) => api.post('/prospects/bulk-u
 // Analytics
 export const getDailyReport = (days = 30) => api.get(`/analytics/daily-report?days=${days}`);
 export const getAnalyticsSummary = () => api.get('/analytics/summary');
+export const getCallsReport = (days = 30) => api.get(`/analytics/calls-report?days=${days}`);
 
 // Import
 export const uploadFile = (files, useFilter = true, reqData = {}) => {

@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import TodoList from './pages/TodoList';
 import Planning from './pages/Planning';
 import Analytics from './pages/Analytics';
+import CallsAnalytics from './pages/CallsAnalytics';
 import ClientDetail from './pages/ClientDetail';
 import Clients from './pages/Clients';
 import Facturation from './pages/Facturation';
@@ -29,6 +30,7 @@ function AppContent() {
           <Route path="/database" element={<Database />} />
           <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/calls-analytics" element={<CallsAnalytics />} />
           <Route path="/prospect/:id" element={<ClientDetail />} />
 
           <Route path="/import" element={<Import />} />

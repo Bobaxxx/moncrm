@@ -19,11 +19,13 @@ import {
   Bookmark,
   ChevronLeft,
   ChevronRight,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { 
   getProspects, 
   updateProspect, 
+  deleteProspect,
   getImportHistory, 
   getAnalyticsSummary,
   createPlanningTask,
@@ -234,6 +236,19 @@ export default function Calls() {
     } catch (err) {
       console.error('Error updating prospect status:', err);
       loadProspects(false); // Rollback
+    }
+  };
+
+  // Delete prospect
+  const handleDelete = async (id) => {
+    if (!confirm('Supprimer ce prospect définitivement ?')) return;
+    try {
+      await deleteProspect(id);
+      setProspects(prev => prev.filter(p => p.id !== id));
+      loadStats();
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Erreur lors de la suppression');
     }
   };
 
@@ -489,11 +504,20 @@ export default function Calls() {
                             </div>
                           </div>
                           
-                          {/* Current Status Badge */}
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${statusColorObj.bg} ${statusColorObj.text} ${statusColorObj.border}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${statusColorObj.dot}`} />
-                            {STATUT_APPEL_LABELS[prospect.statut_appel || 'a_appeler']}
-                          </span>
+                          {/* Current Status Badge & Action */}
+                          <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${statusColorObj.bg} ${statusColorObj.text} ${statusColorObj.border}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${statusColorObj.dot}`} />
+                              {STATUT_APPEL_LABELS[prospect.statut_appel || 'a_appeler']}
+                            </span>
+                            <button
+                              onClick={() => handleDelete(prospect.id)}
+                              className="p-1.5 text-surface-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                              title="Supprimer définitivement ce prospect"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* Phone block */}

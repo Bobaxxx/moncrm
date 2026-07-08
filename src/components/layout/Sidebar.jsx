@@ -30,6 +30,7 @@ const NAV_ITEMS = [
   { path: '/pipeline', icon: TrendingUp, label: 'Pipeline', desc: 'Suivi des ventes' },
   { path: '/clients', icon: Star, label: 'Clients Signés', desc: 'Contrats & Facturation' },
   { path: '/analytics', icon: FileText, label: 'Bilan de jour', desc: 'Analyses & KPI' },
+  { path: '/calls-analytics', icon: PhoneCall, label: 'Bilan des Appels', desc: 'Analyses des Appels' },
   { path: '/import', icon: Upload, label: 'Importation', desc: 'Ajouter des fichiers' },
   { path: '/billing', icon: FileText, label: 'Facturation', desc: 'Factures & Devis' },
   { path: '/products', icon: Package, label: 'Produits', desc: 'Catalogue & Tarifs' },
