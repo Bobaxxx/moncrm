@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/uploads/(.*)", "destination": "/api" },
+    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/index.js": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/cron/billing", "schedule": "0 6 * * *" }
+  ]
+}

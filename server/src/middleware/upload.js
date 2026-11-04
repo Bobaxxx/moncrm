@@ -1,10 +1,6 @@
 import multer from 'multer';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
 import { mkdirSync } from 'fs';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const uploadDir = join(__dirname, '..', '..', 'uploads');
+import { UPLOAD_DIR as uploadDir } from '../utils/paths.js';
 
 mkdirSync(uploadDir, { recursive: true });
 

@@ -7,9 +7,10 @@ import { supabase } from '../db/database.js';
 import { getOffre, DEFAULT_CATEGORY } from '../utils/offre.js';
 import { isEnrichmentConfigured } from '../services/phoneEnrichment.js';
 import { startJob } from '../services/enrichmentJobs.js';
+import { UPLOAD_DIR } from '../utils/paths.js';
 
 const router = Router();
-const upload = multer({ dest: 'server/uploads/' });
+const upload = multer({ dest: UPLOAD_DIR });
 
 // =====================================================================
 // ESPACE SITE WEB (Google Maps Scraper) — logique historique inchangée

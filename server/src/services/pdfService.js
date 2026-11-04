@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { UPLOAD_DIR } from '../utils/paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,7 +12,7 @@ export const generateInvoicePDF = async (invoice, items) => {
     try {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
       const filename = `${invoice.type === 'quote' ? 'DEVIS' : 'FACTURE'}_${invoice.number}.pdf`;
-      const uploadDir = path.join(__dirname, '../../uploads');
+      const uploadDir = UPLOAD_DIR;
       
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
