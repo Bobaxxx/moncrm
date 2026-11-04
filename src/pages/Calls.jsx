@@ -33,6 +33,7 @@ import {
 } from '../services/api';
 import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS } from '../utils/constants';
 import { useStatuts } from '../contexts/useWorkspace';
+import { CLASSEMENTS, ClassementPicker } from '../components/database/ProspectTable';
 
 export default function Calls() {
   const { DEFAULT_CATEGORY, isSaas } = useStatuts();
@@ -68,6 +69,7 @@ export default function Calls() {
     import_id: '',
     category: '',
     departement: '',
+    classement: '',
   });
   
   // Scheduler State
@@ -172,6 +174,7 @@ export default function Calls() {
       const params = {
         search: filters.search,
         departement: filters.departement,
+        classement: filters.classement || undefined,
         page: currentPage,
         limit: 50,
         has_phone: 'true', // On n'affiche que les prospects joignables par téléphone
@@ -224,6 +227,19 @@ export default function Calls() {
   useEffect(() => {
     loadProspects(false);
   }, [filters]);
+
+  // Note de classement manuelle (A / B / C)
+  const handleClassementChange = async (prospect, classement) => {
+    const previous = prospect.classement ?? null;
+    setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, classement } : p));
+    try {
+      await updateProspect(prospect.id, { classement });
+    } catch (err) {
+      console.error('Error updating classement:', err);
+      setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, classement: previous } : p));
+      alert('Impossible d\'enregistrer la note : ' + (err.response?.data?.error || err.message));
+    }
+  };
 
   // Update call status
   const handleUpdateStatus = async (prospect, newStatus) => {
@@ -456,6 +472,21 @@ export default function Calls() {
               className="input-field pl-10 text-sm py-2.5"
             />
           </div>
+
+          {/* Note de classement (SaaS) */}
+          {isSaas && (
+            <select
+              value={filters.classement}
+              onChange={(e) => setFilters(prev => ({ ...prev, classement: e.target.value }))}
+              className="input-field text-sm py-2.5 appearance-none bg-surface-900 shadow-xl"
+            >
+              <option value="">Toutes les notes</option>
+              {Object.entries(CLASSEMENTS).map(([val, { label }]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+              <option value="none">Pas encore noté</option>
+            </select>
+          )}
         </div>
       </div>
 
@@ -489,9 +520,17 @@ export default function Calls() {
                       <div className="flex-1 min-w-0 space-y-2.5">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="text-base font-bold text-white truncate group-hover:text-primary-400 transition-colors">
-                              {prospect.nom_entreprise}
-                            </h3>
+                            <div className="flex items-center gap-3 min-w-0">
+                              <h3 className="text-base font-bold text-white truncate group-hover:text-primary-400 transition-colors">
+                                {prospect.nom_entreprise}
+                              </h3>
+                              {isSaas && (
+                                <ClassementPicker
+                                  value={prospect.classement}
+                                  onChange={(val) => handleClassementChange(prospect, val)}
+                                />
+                              )}
+                            </div>
                             <div className="flex flex-wrap gap-2 items-center mt-1 text-xs text-surface-500">
                               {prospect.departement && (
                                 <span className="flex items-center gap-1">

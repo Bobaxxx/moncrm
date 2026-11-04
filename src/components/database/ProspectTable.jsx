@@ -26,6 +26,34 @@ const ENRICH_FAIL_LABEL = {
   error: 'Erreur'
 };
 
+// Classement manuel (espace SaaS) : A = prioritaire, B = ensuite, C = ne pas appeler
+export const CLASSEMENTS = {
+  A: { label: 'A · Prioritaire', active: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50' },
+  B: { label: 'B · Ensuite', active: 'bg-amber-500/20 text-amber-300 border-amber-500/50' },
+  C: { label: 'C · Ne pas appeler', active: 'bg-red-500/20 text-red-300 border-red-500/50' }
+};
+
+export function ClassementPicker({ value, onChange }) {
+  return (
+    <div className="flex items-center gap-1">
+      {Object.entries(CLASSEMENTS).map(([key, { label, active }]) => (
+        <button
+          key={key}
+          type="button"
+          title={value === key ? `${label} (cliquer pour retirer)` : label}
+          onClick={(e) => { e.stopPropagation(); onChange(value === key ? null : key); }}
+          className={`w-6 h-6 rounded-md text-[11px] font-black border transition-all
+            ${value === key
+              ? active
+              : 'bg-transparent text-surface-600 border-surface-800 hover:text-surface-300 hover:border-surface-600'}`}
+        >
+          {key}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDelete, onEnrichPhone }) {
   const { STATUT_LABELS, STATUT_COLORS, isSaas } = useStatuts();
   const [enrichingIds, setEnrichingIds] = useState(() => new Set());
@@ -159,6 +187,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[250px]">Entreprise</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Téléphone</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[120px]">Statut</th>
+              {isSaas && <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[110px]">Note</th>}
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Ville</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider">{isSaas ? 'Dirigeant / Activité' : 'Site Web'}</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[160px] text-right sticky right-0 bg-surface-950 z-20 shadow-[-12px_0_15px_-10px_rgba(0,0,0,0.5)]">Actions</th>
@@ -293,6 +322,16 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                       )}
                     </div>
                   </td>
+
+                  {/* Note de classement (SaaS) */}
+                  {isSaas && (
+                    <td className="px-4 py-3">
+                      <ClassementPicker
+                        value={p.classement}
+                        onChange={(val) => onUpdate(p.id, { classement: val })}
+                      />
+                    </td>
+                  )}
 
                   {/* Ville */}
                   <td className="px-4 py-3">

@@ -29,7 +29,7 @@ import {
   enrichProspectPhone
 } from '../services/api';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import ProspectTable from '../components/database/ProspectTable';
+import ProspectTable, { CLASSEMENTS } from '../components/database/ProspectTable';
 import SheetManager from '../components/database/SheetManager';
 import EnrichmentProgress from '../components/enrichment/EnrichmentProgress';
 import useEnrichmentJob from '../hooks/useEnrichmentJob';
@@ -49,6 +49,7 @@ export default function Database() {
     statut: '',
     import_id: '',
     category: '',
+    classement: '',
   });
 
   const [page, setPage] = useState(1);
@@ -184,7 +185,7 @@ export default function Database() {
 
   const handleUpdate = async (id, data) => {
     try {
-      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite'];
+      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite', 'classement'];
       const filteredData = {};
       allowedFields.forEach(field => {
         if (data[field] !== undefined) filteredData[field] = data[field];
@@ -364,12 +365,12 @@ export default function Database() {
 
       const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
       const headers = isSaas
-        ? ["Entreprise", "Dirigeant", "Telephone", "Statut", "Ville", "Code postal", "Adresse", "Activite", "Code NAF", "Effectif", "SIREN", "Fiche", "Raison perte"]
+        ? ["Entreprise", "Dirigeant", "Telephone", "Statut", "Note", "Ville", "Code postal", "Adresse", "Activite", "Code NAF", "Effectif", "SIREN", "Fiche", "Raison perte"]
         : ["Entreprise", "Telephone", "Statut", "Ville", "Adresse", "Site Web"];
       const csvRows = [
         headers.join(','),
         ...allProspects.map(p => (isSaas
-          ? [p.nom_entreprise, p.dirigeant, p.telephone, STATUT_LABELS[p.statut] || p.statut, p.ville || p.departement, p.code_postal, p.adresse, p.activite, p.code_naf, p.effectif, p.siren, p.url_fiche, p.raison_perte]
+          ? [p.nom_entreprise, p.dirigeant, p.telephone, STATUT_LABELS[p.statut] || p.statut, p.classement, p.ville || p.departement, p.code_postal, p.adresse, p.activite, p.code_naf, p.effectif, p.siren, p.url_fiche, p.raison_perte]
           : [p.nom_entreprise, p.telephone, STATUT_LABELS[p.statut] || p.statut, p.departement, p.adresse, p.url_site]
         ).map(cell).join(','))
       ];
@@ -500,6 +501,19 @@ export default function Database() {
                 <option key={val} value={val}>{label}</option>
               ))}
             </select>
+            {isSaas && (
+              <select
+                value={filters.classement}
+                onChange={(e) => handleFilterChange('classement', e.target.value)}
+                className="input-field py-1.5 text-sm bg-surface-900 shadow-xl"
+              >
+                <option value="">Toutes les notes</option>
+                {Object.entries(CLASSEMENTS).map(([val, { label }]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
+                <option value="none">Pas encore noté</option>
+              </select>
+            )}
           </div>
         </div>
       </div>

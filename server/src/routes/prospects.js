@@ -6,7 +6,7 @@ const router = Router();
 
 // GET /api/prospects - Liste avec filtres et pagination
 router.get('/', async (req, res) => {
-  const { search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id, has_phone } = req.query;
+  const { search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id, has_phone, classement } = req.query;
   const offre = getOffre(req);
   console.log('GET /api/prospects - Filters:', { offre, search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id });
 
@@ -47,6 +47,11 @@ router.get('/', async (req, res) => {
   }
   if (import_id) {
     query = query.eq('import_id', import_id);
+  }
+  if (classement === 'none') {
+    query = query.is('classement', null);
+  } else if (['A', 'B', 'C'].includes(classement)) {
+    query = query.eq('classement', classement);
   }
   if (has_phone === 'true') {
     query = query.not('telephone', 'is', null).neq('telephone', '');
@@ -237,7 +242,7 @@ const EDITABLE_FIELDS = [
   'nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'statut_appel',
   'notes', 'maquette_phone', 'siren',
   'ville', 'code_postal', 'activite', 'code_naf', 'effectif', 'dirigeant',
-  'url_fiche', 'linkedin_url', 'raison_perte',
+  'url_fiche', 'linkedin_url', 'raison_perte', 'classement',
   'contrat_type', 'has_maintenance', 'montant_mensuel'
 ];
 
