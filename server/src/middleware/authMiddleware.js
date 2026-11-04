@@ -18,7 +18,9 @@ export const requireAuth = async (req, res, next) => {
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
-      return res.status(401).json({ error: 'Session invalide ou expirée.' });
+      console.error('Auth getUser error:', error?.status, error?.message);
+      const detail = error?.message ? ` (${error.message})` : '';
+      return res.status(401).json({ error: `Session invalide ou expirée.${detail}` });
     }
 
     // On attache l'utilisateur à la requête pour usage ultérieur
