@@ -185,7 +185,7 @@ export default function Database() {
 
   const handleUpdate = async (id, data) => {
     try {
-      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite', 'classement'];
+      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite', 'classement', 'effectif'];
       const filteredData = {};
       allowedFields.forEach(field => {
         if (data[field] !== undefined) filteredData[field] = data[field];

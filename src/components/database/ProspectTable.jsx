@@ -33,6 +33,16 @@ export const CLASSEMENTS = {
   C: { label: 'C · Ne pas appeler', active: 'bg-red-500/20 text-red-300 border-red-500/50' }
 };
 
+// "Entre 10 et 19 salariés" -> "10–19" ; "0 salarié" -> "0" ; "250 et plus" -> "250+"
+export const formatEffectif = (raw) => {
+  if (!raw) return '';
+  const s = String(raw);
+  const nums = s.match(/\d+/g);
+  if (!nums) return s;
+  if (nums.length >= 2) return `${nums[0]}–${nums[1]}`;
+  return /plus|\+|au moins/i.test(s) ? `${nums[0]}+` : nums[0];
+};
+
 export function ClassementPicker({ value, onChange }) {
   return (
     <div className="flex items-center gap-1">
@@ -188,6 +198,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Téléphone</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[120px]">Statut</th>
               {isSaas && <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[110px]">Note</th>}
+              {isSaas && <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[90px]">Effectif</th>}
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Ville</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider">{isSaas ? 'Dirigeant / Activité' : 'Site Web'}</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[160px] text-right sticky right-0 bg-surface-950 z-20 shadow-[-12px_0_15px_-10px_rgba(0,0,0,0.5)]">Actions</th>
@@ -333,6 +344,27 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                     </td>
                   )}
 
+                  {/* Effectif (SaaS) */}
+                  {isSaas && (
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editForm.effectif || ''}
+                          onChange={(e) => handleChange('effectif', e.target.value)}
+                          className="w-full bg-surface-950 border border-primary-500/50 rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary-500"
+                          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                        />
+                      ) : p.effectif ? (
+                        <span className="text-xs font-semibold text-surface-300 whitespace-nowrap" title={p.effectif}>
+                          {formatEffectif(p.effectif)} <span className="text-surface-600 font-normal">sal.</span>
+                        </span>
+                      ) : (
+                        <span className="text-surface-700 italic text-xs">—</span>
+                      )}
+                    </td>
+                  )}
+
                   {/* Ville */}
                   <td className="px-4 py-3">
                     {isEditing ? (
@@ -379,7 +411,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                             {p.dirigeant || <span className="text-surface-700 italic">Décideur inconnu</span>}
                           </span>
                           <span className="text-[10px] text-surface-600 truncate flex items-center gap-1.5">
-                            {[p.activite, p.effectif && `${p.effectif} sal.`].filter(Boolean).join(' · ') || '—'}
+                            {p.activite || '—'}
                             {p.url_fiche && (
                               <a href={p.url_fiche} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300 flex items-center gap-0.5" title="Fiche entreprise">
                                 <ExternalLink className="w-3 h-3" />

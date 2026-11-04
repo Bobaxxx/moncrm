@@ -33,7 +33,7 @@ import {
 } from '../services/api';
 import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS } from '../utils/constants';
 import { useStatuts } from '../contexts/useWorkspace';
-import { CLASSEMENTS, ClassementPicker } from '../components/database/ProspectTable';
+import { CLASSEMENTS, ClassementPicker, formatEffectif } from '../components/database/ProspectTable';
 
 export default function Calls() {
   const { DEFAULT_CATEGORY, isSaas } = useStatuts();
@@ -536,6 +536,11 @@ export default function Calls() {
                                 <span className="flex items-center gap-1">
                                   <MapPin className="w-3 h-3 text-primary-400" />
                                   {prospect.departement}
+                                </span>
+                              )}
+                              {isSaas && prospect.effectif && (
+                                <span className="bg-surface-900 border border-surface-800 px-2 py-0.5 rounded text-[10px] font-semibold text-surface-300" title={prospect.effectif}>
+                                  {formatEffectif(prospect.effectif)} sal.
                                 </span>
                               )}
                               {prospect.import_history?.category && (
