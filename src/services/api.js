@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase } from '../lib/supabase';
+import { getCurrentOffre } from '../lib/workspace';
 
 const api = axios.create({
   baseURL: '/api',
@@ -12,6 +13,8 @@ api.interceptors.request.use(async (config) => {
   if (session?.access_token) {
     config.headers.Authorization = `Bearer ${session.access_token}`;
   }
+  // Espace de travail actif : le serveur filtre toutes les données dessus
+  config.headers['X-Offre'] = getCurrentOffre();
   return config;
 }, (error) => {
   return Promise.reject(error);
@@ -46,10 +49,22 @@ export const uploadFile = (files, useFilter = true, reqData = {}) => {
   if (reqData && reqData.category) {
     formData.append('category', reqData.category);
   }
+  if (reqData && reqData.enrichPhones) {
+    formData.append('enrichPhones', 'true');
+  }
   return api.post('/imports/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000
   });
 };
+
+// Enrichissement des téléphones (TomTom ou Google Places)
+export const getEnrichmentStatus = () => api.get('/enrichment/status');
+export const getPendingEnrichmentCount = (params) => api.get('/enrichment/phones/pending', { params });
+export const startPhoneEnrichment = (filter) => api.post('/enrichment/phones/bulk', filter);
+export const getEnrichmentJob = (id) => api.get(`/enrichment/jobs/${id}`);
+export const cancelEnrichmentJob = (id) => api.post(`/enrichment/jobs/${id}/cancel`);
+export const enrichProspectPhone = (id) => api.post(`/enrichment/prospects/${id}/phone`, {}, { timeout: 60000 });
 
 export const previewFile = (files, useFilter = true) => {
   const formData = new FormData();

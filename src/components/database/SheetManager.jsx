@@ -59,7 +59,7 @@ export default function SheetManager({ imports: initialImports, folders, onClose
       onClose();
     } catch (err) {
       console.error('Bulk delete error:', err);
-      alert('Erreur lors de la suppression groupée');
+      alert(`Erreur lors de la suppression groupée : ${err.response?.data?.error || (err.response ? `HTTP ${err.response.status}` : 'serveur injoignable (est-il lancé ?)')}`);
     } finally {
       setLoading(false);
     }
@@ -196,7 +196,7 @@ export default function SheetManager({ imports: initialImports, folders, onClose
                                  </span>
                                  <span className="flex items-center gap-1.2 text-primary-400">
                                     <Layers className="w-3 h-3" />
-                                    {imp.category || 'Serrurier'}
+                                    {imp.category || '—'}
                                  </span>
                               </div>
                             </div>

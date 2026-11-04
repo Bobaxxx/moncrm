@@ -13,7 +13,9 @@ import {
   RotateCcw,
   Calendar,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  Footprints,
+  Presentation
 } from 'lucide-react';
 import { getPlanningTasks, createPlanningTask, updatePlanningTask, deletePlanningTask } from '../services/api';
 
@@ -23,6 +25,8 @@ const TASK_TYPES = [
   { value: 'maquette', label: 'Maquette', icon: Palette, color: '#f59e0b' },
   { value: 'relance', label: 'Relance', icon: RotateCcw, color: '#ef4444' },
   { value: 'rdv', label: 'Rendez-vous', icon: Calendar, color: '#8b5cf6' },
+  { value: 'visite_depot', label: 'Tournée dépôts (SaaS)', icon: Footprints, color: '#d97706' },
+  { value: 'demo', label: 'Démo PlanniBat', icon: Presentation, color: '#0891b2' },
   { value: 'autre', label: 'Autre', icon: FileText, color: '#64748b' },
 ];
 

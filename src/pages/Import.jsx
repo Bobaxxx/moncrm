@@ -14,14 +14,38 @@ import {
 } from 'lucide-react';
 import { previewFile, uploadFile, getFolders, createFolder } from '../services/api';
 import FileDropzone from '../components/import/FileDropzone';
+import EnrichmentProgress from '../components/enrichment/EnrichmentProgress';
+import useEnrichmentJob from '../hooks/useEnrichmentJob';
+import { useStatuts } from '../contexts/useWorkspace';
+
+// Libellés des champs reconnus à l'import SaaS
+const SAAS_FIELD_LABELS = {
+  nom_entreprise: 'Entreprise',
+  dirigeant: 'Dirigeant',
+  telephone: 'Téléphone',
+  adresse: 'Adresse',
+  code_postal: 'Code postal',
+  ville: 'Ville',
+  activite: 'Activité',
+  code_naf: 'Code NAF',
+  effectif: 'Effectif',
+  siren: 'SIREN',
+  url_fiche: 'Fiche Pappers / URL',
+  linkedin_url: 'LinkedIn',
+  url_site: 'Site web'
+};
 
 export default function Import() {
+  const { isSaas, DEFAULT_CATEGORY } = useStatuts();
   const [files, setFiles] = useState([]);
   const [previewData, setPreviewData] = useState(null);
-  const [useFilter, setUseFilter] = useState(true);
+  const [useFilter, setUseFilter] = useState(!isSaas);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [category, setCategory] = useState('Serrurier');
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
+  const [enrichPhones, setEnrichPhones] = useState(isSaas);
+  const [enrichmentError, setEnrichmentError] = useState(null);
+  const enrichment = useEnrichmentJob();
   const [folders, setFolders] = useState([]);
   const [step, setStep] = useState(1); // 1: Drop, 2: Preview, 3: Success
 
@@ -36,7 +60,12 @@ export default function Import() {
     const fetchFolders = async () => {
       try {
         const res = await getFolders();
-        setFolders(res.data || []);
+        const list = res.data || [];
+        setFolders(list);
+        // Si le dossier par défaut n'existe pas dans cet espace, on prend le premier
+        if (list.length > 0 && !list.some(f => f.name === DEFAULT_CATEGORY)) {
+          setCategory(list[0].name);
+        }
       } catch (err) {
         console.error('Error fetching folders:', err);
       }
@@ -58,7 +87,7 @@ export default function Import() {
       setPreviewData(res.data);
       setStep(2);
     } catch (err) {
-      setError("Erreur lors de l'analyse des fichiers. Vérifiez le format CSV/JSON.");
+      setError("Erreur lors de l'analyse des fichiers. Vérifiez le format (CSV, Excel .xlsx ou JSON).");
       console.error(err);
     } finally {
       setLoading(false);
@@ -69,7 +98,9 @@ export default function Import() {
     setLoading(true);
     setError(null);
     try {
-      await uploadFile(files, useFilter, { category });
+      const res = await uploadFile(files, useFilter, { category, enrichPhones: isSaas && enrichPhones });
+      setEnrichmentError(res.data.enrichmentError || null);
+      if (res.data.enrichmentJob) enrichment.setJob(res.data.enrichmentJob);
       setStep(3);
     } catch (err) {
       setError("Une erreur est survenue lors de l'importation vers la base de données.");
@@ -91,8 +122,12 @@ export default function Import() {
       {/* Header & Steps */}
       <div className="flex items-center justify-between mb-12">
         <div>
-          <h1 className="text-3xl font-bold text-surface-50">Importer des Prospects</h1>
-          <p className="text-surface-400 mt-2">Préparez vos fichiers CSV ou JSON pour alimenter votre CRM.</p>
+          <h1 className="text-3xl font-bold text-surface-50">Importer des Prospects{isSaas ? ' SaaS' : ''}</h1>
+          <p className="text-surface-400 mt-2">
+            {isSaas
+              ? 'Exports Pappers, Annuaire des Entreprises ou Instant Data Scraper (CSV ou Excel).'
+              : 'Préparez vos fichiers CSV ou JSON pour alimenter votre CRM.'}
+          </p>
         </div>
         
         <div className="flex items-center gap-4">
@@ -125,8 +160,35 @@ export default function Import() {
           {files.length > 0 && (
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-6 glass-card border-surface-700/30 bg-surface-900/20">
-              {/* Toggle Filtrage Intelligent */}
-              <div 
+              {/* Toggle Filtrage Intelligent (espace Site web uniquement) */}
+              {isSaas ? (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-4 p-3 pr-5 rounded-2xl border bg-emerald-500/5 border-emerald-500/20 select-none">
+                    <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+                      <Filter className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-surface-200">Import SaaS</p>
+                      <p className="text-[10px] text-surface-500 uppercase tracking-tight">Sites existants conservés · doublons ignorés</p>
+                    </div>
+                  </div>
+                  <label className="flex items-start gap-2.5 px-2 cursor-pointer select-none max-w-xs">
+                    <input
+                      type="checkbox"
+                      checked={enrichPhones}
+                      onChange={(e) => setEnrichPhones(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-emerald-500"
+                    />
+                    <span className="text-xs text-surface-300 leading-snug">
+                      Tenter de récupérer automatiquement les téléphones manquants (annuaire / cartes)
+                      {enrichment.configured === false && (
+                        <span className="block text-[10px] text-amber-400 mt-0.5">Aucune clé configurée sur le serveur (TOMTOM_API_KEY ou GOOGLE_PLACES_API_KEY)</span>
+                      )}
+                    </span>
+                  </label>
+                </div>
+              ) : (
+              <div
                 onClick={() => setUseFilter(!useFilter)}
                 className={`flex items-center gap-4 p-3 pr-5 rounded-2xl border transition-all cursor-pointer select-none
                   ${useFilter ? 'bg-primary-500/5 border-primary-500/20' : 'bg-surface-800/20 border-surface-800/40'}`}
@@ -142,6 +204,7 @@ export default function Import() {
                     {useFilter ? <ToggleRight className="w-7 h-7 text-primary-500" /> : <ToggleLeft className="w-7 h-7 text-surface-600" />}
                  </div>
               </div>
+              )}
 
               {/* Nouveau: Champ Catégorie */}
               <div className="flex flex-col gap-2 flex-1 min-w-[200px]">
@@ -170,7 +233,7 @@ export default function Import() {
                   onChange={(e) => setCategory(e.target.value)}
                   className="input-field py-3 text-sm bg-surface-900 shadow-xl w-full"
                 >
-                  {folders.length === 0 && <option value="Serrurier">Serrurier</option>}
+                  {folders.length === 0 && <option value={DEFAULT_CATEGORY}>{DEFAULT_CATEGORY}</option>}
                   {folders.map(f => (
                     <option key={f.id} value={f.name}>{f.name}</option>
                   ))}
@@ -211,8 +274,9 @@ export default function Import() {
           <div className="glass-card overflow-hidden border-surface-800/40">
              <div className="p-4 border-b border-surface-800 flex items-center justify-between bg-surface-900/50">
                <h3 className="text-sm font-bold uppercase tracking-widest text-surface-400">Aperçu global</h3>
-               
-               <button 
+
+               {!isSaas && (
+               <button
                 onClick={() => setUseFilter(!useFilter)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase transition-all
                   ${useFilter ? 'bg-primary-500/10 border-primary-500/30 text-primary-400' : 'bg-surface-800 border-surface-700 text-surface-500'}`}
@@ -220,7 +284,27 @@ export default function Import() {
                  <Filter className="w-3 h-3" />
                  Filtre: {useFilter ? 'ACTIF' : 'DÉSACTIVÉ'}
                </button>
+               )}
              </div>
+
+             {isSaas && previewData.mapping && (
+               <div className="px-4 py-3 border-b border-surface-800 flex flex-wrap gap-2 bg-surface-950/40">
+                 <span className="text-[10px] uppercase font-bold text-surface-500 tracking-widest self-center mr-1">Colonnes reconnues</span>
+                 {Object.entries(SAAS_FIELD_LABELS).map(([field, label]) => {
+                   const source = previewData.mapping[field];
+                   return (
+                     <span
+                       key={field}
+                       title={source ? `Colonne du fichier : ${source}` : 'Colonne non trouvée dans le fichier'}
+                       className={`px-2 py-0.5 rounded-md text-[10px] font-bold border
+                         ${source ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-surface-800/40 text-surface-600 border-surface-700/40 line-through'}`}
+                     >
+                       {label}
+                     </span>
+                   );
+                 })}
+               </div>
+             )}
              
              <div className="overflow-x-auto max-h-[400px] no-scrollbar">
                <table className="w-full text-xs text-left">
@@ -228,7 +312,9 @@ export default function Import() {
                    <tr className="border-b border-surface-800">
                      <th className="px-4 py-3 text-surface-500">Source</th>
                      <th className="px-4 py-3 text-surface-500">Entreprise</th>
+                     {isSaas && <th className="px-4 py-3 text-surface-500">Dirigeant</th>}
                      <th className="px-4 py-3 text-surface-500">Téléphone</th>
+                     {isSaas && <th className="px-4 py-3 text-surface-500">Ville</th>}
                      <th className="px-4 py-3 text-surface-500">Statut</th>
                    </tr>
                  </thead>
@@ -237,7 +323,9 @@ export default function Import() {
                      <tr key={i} className="hover:bg-surface-800/20 transition-colors">
                        <td className="px-4 py-3 text-surface-400 font-mono italic truncate max-w-[100px]">{row._filename}</td>
                        <td className="px-4 py-3 font-semibold text-surface-200">{row[previewData.mapping.nom_entreprise]}</td>
+                       {isSaas && <td className="px-4 py-3 text-surface-400">{row[previewData.mapping.dirigeant]}</td>}
                        <td className="px-4 py-3 text-surface-400">{row[previewData.mapping.telephone]}</td>
+                       {isSaas && <td className="px-4 py-3 text-surface-400">{row[previewData.mapping.ville]}</td>}
                        <td className="px-4 py-3">
                          {row._status === 'import' ? (
                            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md font-bold uppercase text-[9px]">Garder</span>
@@ -274,7 +362,17 @@ export default function Import() {
           </div>
           <h2 className="text-3xl font-bold text-white mb-2">Importation Terminée !</h2>
           <p className="text-surface-400 mb-8 font-medium">Vos prospects ont été ajoutés avec succès.</p>
-          
+
+          {(enrichment.job || enrichmentError) && (
+            <div className="mb-8 text-left space-y-2">
+              <EnrichmentProgress job={enrichment.job} onCancel={enrichment.cancel} onDismiss={enrichment.dismiss} />
+              {enrichmentError && <p className="text-xs text-amber-400">{enrichmentError}</p>}
+              {enrichment.job?.status === 'running' && (
+                <p className="text-[11px] text-surface-500">La recherche continue en arrière-plan : tu peux quitter cette page et suivre la progression dans la Base de données.</p>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col gap-4">
             <button 
               onClick={() => window.location.href = '#/database'}

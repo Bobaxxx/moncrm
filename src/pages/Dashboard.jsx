@@ -1,10 +1,32 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Upload, MessageSquare, TrendingUp, ArrowRight, Phone, Globe, MapPin, Calendar, CheckCircle2, Clock } from 'lucide-react';
+import { Users, Upload, MessageSquare, TrendingUp, ArrowRight, Phone, Globe, MapPin, Calendar, CheckCircle2, Clock, Footprints, Presentation, FlaskConical, Euro } from 'lucide-react';
 import { getProspectStats, getImportHistory, getPlanningTasks } from '../services/api';
-import { STATUT_LABELS, STATUT_COLORS, SOURCE_LABELS } from '../utils/constants';
+import { SOURCE_LABELS } from '../utils/constants';
+import { useStatuts } from '../contexts/useWorkspace';
+
+const formatEuro = (n) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n || 0);
+
+function StatCard({ icon: Icon, tone, value, label, sub, badge }) {
+  return (
+    <div className="stat-card">
+      <div className={`w-10 h-10 rounded-xl ${tone.bg} flex items-center justify-center mb-2 relative`}>
+        <Icon className={`w-5 h-5 ${tone.text}`} />
+        {badge > 0 && (
+          <div className={`absolute -top-1 -right-1 ${tone.solid} text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full shadow-lg`}>
+            +{badge}
+          </div>
+        )}
+      </div>
+      <p className="text-3xl font-bold text-surface-50 tabular-nums">{value}</p>
+      <p className="text-xs text-surface-500 font-medium">{label}</p>
+      {sub && <p className="text-[10px] text-surface-600 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
 
 export default function Dashboard() {
+  const { STATUT_LABELS, STATUT_COLORS, isSaas } = useStatuts();
   const [stats, setStats] = useState(null);
   const [imports, setImports] = useState([]);
   const [todayTasks, setTodayTasks] = useState([]);
@@ -49,8 +71,8 @@ export default function Dashboard() {
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-surface-50">Dashboard</h1>
-        <p className="text-surface-500 mt-2">Vue d'ensemble de votre prospection</p>
+        <h1 className="text-3xl font-bold text-surface-50">Dashboard{isSaas ? ' SaaS' : ''}</h1>
+        <p className="text-surface-500 mt-2">{isSaas ? 'Prospection PlanniBat : du dépôt à l\'abonnement' : 'Vue d\'ensemble de votre prospection'}</p>
       </div>
 
       {/* Quick actions */}
@@ -118,7 +140,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className={`grid grid-cols-2 md:grid-cols-3 gap-4 ${isSaas ? 'xl:grid-cols-6' : 'lg:grid-cols-5'}`}>
         <div className="stat-card">
           <div className="w-10 h-10 rounded-xl bg-primary-600/20 flex items-center justify-center mb-2">
             <Users className="w-5 h-5 text-primary-400" />
@@ -137,6 +159,40 @@ export default function Dashboard() {
           </div>
         ))}
 
+        {isSaas ? (
+          <>
+            <StatCard
+              icon={Footprints}
+              tone={{ bg: 'bg-amber-500/20', text: 'text-amber-400', solid: 'bg-amber-500' }}
+              value={stats?.saas?.contactsTotal || 0}
+              badge={stats?.saas?.contactsToday}
+              label="Visites / contacts tentés"
+              sub={`${stats?.saas?.contactsToday || 0} aujourd'hui`}
+            />
+            <StatCard
+              icon={Presentation}
+              tone={{ bg: 'bg-cyan-500/20', text: 'text-cyan-400', solid: 'bg-cyan-500' }}
+              value={stats?.saas?.demosTotal || 0}
+              badge={stats?.saas?.demosToday}
+              label="Démos faites"
+              sub={`${stats?.saas?.tauxDemoAbonne || 0} % converties en abonnés`}
+            />
+            <StatCard
+              icon={FlaskConical}
+              tone={{ bg: 'bg-indigo-500/20', text: 'text-indigo-400', solid: 'bg-indigo-500' }}
+              value={stats?.saas?.essaisActifs || 0}
+              label="Essais actifs"
+            />
+            <StatCard
+              icon={Euro}
+              tone={{ bg: 'bg-emerald-500/20', text: 'text-emerald-400', solid: 'bg-emerald-500' }}
+              value={stats?.saas?.abonnes || 0}
+              label="Abonnés"
+              sub={`MRR : ${formatEuro(stats?.saas?.mrr)}`}
+            />
+          </>
+        ) : (
+        <>
         <div className="stat-card">
           <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center mb-2 relative">
             <MessageSquare className="w-5 h-5 text-amber-400" />
@@ -190,6 +246,8 @@ export default function Dashboard() {
             <p className="text-xs text-surface-500 font-medium">Clients signés</p>
           </div>
         ))}
+        </>
+        )}
       </div>
 
       {/* Pipeline breakdown & Sources */}
@@ -255,7 +313,7 @@ export default function Dashboard() {
       {/* Top departments */}
       {stats?.byDepartement && stats.byDepartement.length > 0 && (
         <div className="glass-card p-6">
-          <h3 className="text-sm font-semibold text-surface-300 mb-4">Top départements</h3>
+          <h3 className="text-sm font-semibold text-surface-300 mb-4">{isSaas ? 'Top villes' : 'Top départements'}</h3>
           <div className="flex flex-wrap gap-2">
             {stats.byDepartement.map(({ departement, count }) => (
               <div key={departement} className="flex items-center gap-2 bg-surface-800/50 border border-surface-700/40 rounded-xl px-3 py-2">

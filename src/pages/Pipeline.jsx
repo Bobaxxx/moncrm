@@ -4,14 +4,17 @@ import { RefreshCw, Search, Plus } from 'lucide-react';
 import ProspectCard from '../components/pipeline/ProspectCard';
 import PhoneModal from '../components/pipeline/PhoneModal';
 import AddProspectModal from '../components/database/AddProspectModal';
+import LossReasonModal from '../components/pipeline/LossReasonModal';
 import { getKanbanData, updateProspect, getImportHistory } from '../services/api';
-import { STATUT_LABELS, STATUT_COLORS, STATUT_ORDER } from '../utils/constants';
+import { useStatuts } from '../contexts/useWorkspace';
 
 export default function Pipeline() {
+  const { STATUT_LABELS, STATUT_COLORS, STATUT_ORDER, isSaas } = useStatuts();
   const [columns, setColumns] = useState({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [pendingMove, setPendingMove] = useState(null); // { id, destCol, prospectName }
+  const [pendingLoss, setPendingLoss] = useState(null); // SaaS : { id, prospectName }
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedImport, setSelectedImport] = useState('');
   const [importHistory, setImportHistory] = useState([]);
@@ -110,7 +113,11 @@ export default function Pipeline() {
 
     // Persist
     if (sourceCol !== destCol) {
-      if (destCol === 'maquette_envoyee') {
+      if (isSaas && destCol === 'perdu') {
+        // On demande la raison du refus avant d'enregistrer
+        const movedProspect = (columns[sourceCol] || []).find(p => String(p.id) === String(prospectId));
+        setPendingLoss({ id: prospectId, prospectName: movedProspect?.nom_entreprise || 'ce prospect' });
+      } else if (!isSaas && destCol === 'maquette_envoyee') {
         const sourceItems = columns[sourceCol];
         const movedProspect = sourceItems.find(p => String(p.id) === String(prospectId));
         setPendingMove({ id: prospectId, destCol, prospectName: movedProspect?.nom_entreprise || 'le prospect' });
@@ -176,6 +183,27 @@ export default function Pipeline() {
     }
   };
 
+  const handleLossConfirm = async (reason) => {
+    if (!pendingLoss) return;
+    const { id } = pendingLoss;
+    setPendingLoss(null);
+
+    setColumns(prev => {
+      const next = { ...prev };
+      for (const col in next) {
+        next[col] = next[col].map(p => String(p.id) === String(id) ? { ...p, statut: 'perdu', raison_perte: reason || null } : p);
+      }
+      return next;
+    });
+
+    try {
+      await updateProspect(id, { statut: 'perdu', raison_perte: reason || null });
+    } catch (err) {
+      console.error('[Pipeline] Loss update error:', err.response?.data || err.message);
+      loadData();
+    }
+  };
+
   const handleDelete = (prospectId) => {
     setColumns(prev => {
       const next = {};
@@ -201,6 +229,8 @@ export default function Pipeline() {
         p.nom_entreprise.toLowerCase().includes(q) ||
         p.telephone?.includes(q) ||
         p.departement?.toLowerCase().includes(q) ||
+        p.dirigeant?.toLowerCase().includes(q) ||
+        p.activite?.toLowerCase().includes(q) ||
         p.notes?.toLowerCase().includes(q)
       );
     }
@@ -221,7 +251,7 @@ export default function Pipeline() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-surface-50">Pipeline</h1>
+          <h1 className="text-3xl font-bold text-surface-50">Pipeline{isSaas ? ' SaaS' : ''}</h1>
           <p className="text-surface-500 mt-2">Glissez-déposez les prospects entre les colonnes</p>
         </div>
         <div className="flex items-center gap-3">
@@ -242,7 +272,7 @@ export default function Pipeline() {
             <option value="null">Sans feuille (Anciens)</option>
             {importHistory.map(imp => (
               <option key={imp.id} value={imp.id}>
-                {imp.filename.replace('.csv', '').replace('.json', '')}
+                {imp.filename.replace(/\.(csv|json|xlsx)$/i, '')}
               </option>
             ))}
           </select>
@@ -303,7 +333,7 @@ export default function Pipeline() {
                 {/* Droppable area */}
                 <Droppable droppableId={statut}>
                   {(provided, snapshot) => {
-                    const isLimited = ['a_contacter', 'sms_envoye'].includes(statut);
+                    const isLimited = (isSaas ? ['a_contacter'] : ['a_contacter', 'sms_envoye']).includes(statut);
                     const displayItems = isLimited ? items.slice(0, 5) : items;
                     const hiddenCount = isLimited && items.length > 5 ? items.length - 5 : 0;
 
@@ -375,7 +405,18 @@ export default function Pipeline() {
         prospectName={pendingMove?.prospectName}
       />
 
-      <AddProspectModal 
+      <LossReasonModal
+        isOpen={!!pendingLoss}
+        prospectName={pendingLoss?.prospectName}
+        onConfirm={handleLossConfirm}
+        onClose={() => {
+          // Annulation : la carte retourne à sa colonne d'origine
+          setPendingLoss(null);
+          loadData();
+        }}
+      />
+
+      <AddProspectModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onRefresh={loadData}

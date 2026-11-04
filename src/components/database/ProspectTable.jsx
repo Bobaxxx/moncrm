@@ -11,12 +11,33 @@ import {
   ChevronDown,
   UserSearch,
   Copy,
-  Check
+  Check,
+  Search,
+  Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { STATUT_LABELS, STATUT_COLORS } from '../../utils/constants';
+import { useStatuts } from '../../contexts/useWorkspace';
 
-export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDelete }) {
+// Libellé affiché quand la recherche automatique n'a pas abouti
+const ENRICH_FAIL_LABEL = {
+  not_found: 'Introuvable',
+  ambiguous: 'Incertain',
+  duplicate_phone: 'N° déjà utilisé',
+  error: 'Erreur'
+};
+
+export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDelete, onEnrichPhone }) {
+  const { STATUT_LABELS, STATUT_COLORS, isSaas } = useStatuts();
+  const [enrichingIds, setEnrichingIds] = useState(() => new Set());
+
+  const handleEnrichClick = async (id) => {
+    setEnrichingIds(prev => new Set(prev).add(id));
+    try {
+      await onEnrichPhone(id);
+    } finally {
+      setEnrichingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+    }
+  };
   const [editingId, setEditingId] = useState(null);
   const [statusMenuId, setStatusMenuId] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -110,6 +131,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
   const handleCopyInfo = (prospect) => {
     const info = [
       prospect.nom_entreprise,
+      prospect.dirigeant,
       prospect.adresse,
       prospect.telephone,
       prospect.departement
@@ -138,7 +160,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Téléphone</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[120px]">Statut</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Ville</th>
-              <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider">Site Web</th>
+              <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider">{isSaas ? 'Dirigeant / Activité' : 'Site Web'}</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[160px] text-right sticky right-0 bg-surface-950 z-20 shadow-[-12px_0_15px_-10px_rgba(0,0,0,0.5)]">Actions</th>
             </tr>
           </thead>
@@ -198,7 +220,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                     {isEditing ? (
                       <input 
                         type="text" 
-                        value={editForm.telephone} 
+                        value={editForm.telephone || ''}
                         onChange={(e) => handleChange('telephone', e.target.value)}
                         className="w-full bg-surface-950 border border-primary-500/50 rounded px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-primary-500"
                         onKeyDown={(e) => e.key === 'Enter' && handleSave()}
@@ -206,7 +228,22 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                     ) : (
                       <div className="flex items-center gap-2 text-surface-400 font-mono text-xs">
                         <Phone className="w-3 h-3 opacity-40" />
-                        {p.telephone}
+                        {p.telephone || (onEnrichPhone ? (
+                          <span className="flex items-center gap-1.5 font-sans">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleEnrichClick(p.id); }}
+                              disabled={enrichingIds.has(p.id)}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-60"
+                              title="Chercher le téléphone automatiquement"
+                            >
+                              {enrichingIds.has(p.id) ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
+                              {enrichingIds.has(p.id) ? 'Recherche…' : 'Chercher'}
+                            </button>
+                            {ENRICH_FAIL_LABEL[p.enrichment_status] && !enrichingIds.has(p.id) && (
+                              <span className="text-[10px] text-surface-600 italic">{ENRICH_FAIL_LABEL[p.enrichment_status]}</span>
+                            )}
+                          </span>
+                        ) : <span className="text-surface-700 italic font-sans">—</span>)}
                       </div>
                     )}
                   </td>
@@ -275,9 +312,45 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                     )}
                   </td>
 
-                  {/* Site Web */}
-                  <td className="px-4 py-3 max-w-[200px] truncate">
-                    {isEditing ? (
+                  {/* Site Web (ou Dirigeant / Activité en SaaS) */}
+                  <td className="px-4 py-3 max-w-[240px] truncate">
+                    {isSaas ? (
+                      isEditing ? (
+                        <div className="flex flex-col gap-1">
+                          <input
+                            type="text"
+                            placeholder="Dirigeant / décideur"
+                            value={editForm.dirigeant || ''}
+                            onChange={(e) => handleChange('dirigeant', e.target.value)}
+                            className="w-full bg-surface-950 border border-primary-500/50 rounded px-2 py-1 text-sm outline-none focus:ring-1 focus:ring-primary-500"
+                            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Activité / métier"
+                            value={editForm.activite || ''}
+                            onChange={(e) => handleChange('activite', e.target.value)}
+                            className="w-full bg-surface-950 border border-primary-500/50 rounded px-2 py-1 text-xs outline-none focus:ring-1 focus:ring-primary-500"
+                            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs text-surface-300 font-medium truncate">
+                            {p.dirigeant || <span className="text-surface-700 italic">Décideur inconnu</span>}
+                          </span>
+                          <span className="text-[10px] text-surface-600 truncate flex items-center gap-1.5">
+                            {[p.activite, p.effectif && `${p.effectif} sal.`].filter(Boolean).join(' · ') || '—'}
+                            {p.url_fiche && (
+                              <a href={p.url_fiche} target="_blank" rel="noopener noreferrer" className="text-primary-400 hover:text-primary-300 flex items-center gap-0.5" title="Fiche entreprise">
+                                <ExternalLink className="w-3 h-3" />
+                                Fiche
+                              </a>
+                            )}
+                          </span>
+                        </div>
+                      )
+                    ) : isEditing ? (
                       <input 
                         type="text" 
                         value={editForm.url_site || ''} 

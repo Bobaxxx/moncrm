@@ -15,13 +15,17 @@ import Products from './pages/Products';
 import Login from './pages/Login';
 import Calls from './pages/Calls';
 import { AuthProvider } from './contexts/AuthContext';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { useWorkspace } from './contexts/useWorkspace';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 function AppContent() {
+  const { offre } = useWorkspace();
   return (
     <div className="flex min-h-screen bg-surface-950 text-surface-50 font-sans selection:bg-primary-500/30">
       <Sidebar />
-      <main className="flex-1 overflow-x-hidden p-6 lg:p-10">
+      {/* key={offre} : changer d'espace recharge toutes les pages avec les données de cet espace */}
+      <main key={offre} className="flex-1 overflow-x-hidden p-6 lg:p-10">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -48,6 +52,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
+      <WorkspaceProvider>
       <Router>
         <Routes>
           {/* Route publique */}
@@ -59,6 +64,7 @@ function App() {
           </Route>
         </Routes>
       </Router>
+      </WorkspaceProvider>
     </AuthProvider>
   );
 }

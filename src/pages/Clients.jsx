@@ -5,6 +5,7 @@ import {
   FileText, Banknote, ChevronDown
 } from 'lucide-react';
 import { getProspects, updateProspect } from '../services/api';
+import { useStatuts } from '../contexts/useWorkspace';
 
 const STATUT_FACTURATION = [
   { value: 'a_envoyer', label: 'À envoyer', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', dot: 'bg-amber-400' },
@@ -253,6 +254,7 @@ function EditModal({ client, onClose, onSave }) {
 }
 
 export default function Clients() {
+  const { SIGNED_STATUT, isSaas } = useStatuts();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingClient, setEditingClient] = useState(null);
@@ -260,7 +262,7 @@ export default function Clients() {
 
   const loadClients = async () => {
     try {
-      const res = await getProspects({ statut: 'client_signe', nopagination: true });
+      const res = await getProspects({ statut: SIGNED_STATUT, nopagination: true });
       setClients(res.data.data || []);
     } catch (err) {
       console.error(err);
@@ -308,9 +310,9 @@ export default function Clients() {
         <div>
           <h1 className="text-3xl font-bold text-surface-50 flex items-center gap-3">
             <Star className="w-8 h-8 text-emerald-400 fill-emerald-400/30" />
-            Clients Signés
+            {isSaas ? 'Abonnés PlanniBat' : 'Clients Signés'}
           </h1>
-          <p className="text-surface-500 mt-2">Suivi de tes contrats et facturation</p>
+          <p className="text-surface-500 mt-2">{isSaas ? 'Suivi des abonnements mensuels' : 'Suivi de tes contrats et facturation'}</p>
         </div>
         <div className="text-right">
           <p className="text-[10px] uppercase font-bold text-surface-600 tracking-widest">{clients.length} client{clients.length > 1 ? 's' : ''}</p>

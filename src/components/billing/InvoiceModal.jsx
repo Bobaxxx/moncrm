@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getProspects, createInvoice, getProducts } from '../../services/api';
 import { X, Plus, Trash2, CheckCircle, AlertCircle, Search, Package } from 'lucide-react';
+import { useStatuts } from '../../contexts/useWorkspace';
 
 export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
+  const { SIGNED_STATUT } = useStatuts();
   const [formData, setFormData] = useState({
     type: 'invoice',
     client_name: '',
@@ -39,7 +41,8 @@ export default function InvoiceModal({ isOpen, onClose, onSuccess }) {
 
   const fetchProspects = async () => {
     try {
-      const response = await getProspects({ statut: 'client_signe', nopagination: true });
+      // Clients gagnés de l'espace actif (clients signés ou abonnés SaaS)
+      const response = await getProspects({ statut: SIGNED_STATUT, nopagination: true });
       setProspects(response.data.data || []);
     } catch (err) {
       console.error('Error fetching clients:', err);

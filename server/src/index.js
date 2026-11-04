@@ -15,6 +15,7 @@ import analyticsRouter from './routes/analytics.js';
 import billingRouter from './routes/billing.js';
 import productsRouter from './routes/products.js';
 import foldersRouter from './routes/folders.js';
+import enrichmentRouter from './routes/enrichment.js';
 import { checkRecurrentBilling } from './services/subscriptionService.js';
 
 // Middleware Auth
@@ -43,6 +44,7 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/billing', billingRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/folders', foldersRouter);
+app.use('/api/enrichment', enrichmentRouter);
 
 
 // Health check

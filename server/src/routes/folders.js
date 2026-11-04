@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { supabase } from '../db/database.js';
+import { getOffre } from '../utils/offre.js';
 
 const router = Router();
 
@@ -9,6 +10,7 @@ router.get('/', async (req, res) => {
     const { data, error } = await supabase
       .from('folders')
       .select('*')
+      .eq('offre', getOffre(req))
       .order('name', { ascending: true });
 
     if (error) throw error;
@@ -27,7 +29,7 @@ router.post('/', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('folders')
-      .insert({ name })
+      .insert({ name, offre: getOffre(req) })
       .select()
       .single();
 

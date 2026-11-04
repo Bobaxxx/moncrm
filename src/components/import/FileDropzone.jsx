@@ -23,7 +23,7 @@ export default function FileDropzone({ onFilesSelect, disabled }) {
   }, []);
 
   const processFiles = (files) => {
-    const validFiles = Array.from(files).filter(file => file.name.match(/\.(csv|json)$/i));
+    const validFiles = Array.from(files).filter(file => file.name.match(/\.(csv|json|xlsx)$/i));
     if (validFiles.length > 0) {
       const newFiles = [...selectedFiles, ...validFiles];
       // Éviter les doublons exacts par nom et taille
@@ -82,7 +82,7 @@ export default function FileDropzone({ onFilesSelect, disabled }) {
       >
         <input
           type="file"
-          accept=".csv,.json"
+          accept=".csv,.json,.xlsx"
           multiple
           onChange={handleFileInput}
           disabled={disabled}
@@ -103,7 +103,7 @@ export default function FileDropzone({ onFilesSelect, disabled }) {
           {isDragging ? 'Déposez les fichiers ici' : 'Ajouter des fichiers'}
         </p>
         <p className="mt-1 text-xs text-surface-600">
-          CSV, JSON • Max 50 MB par fichier
+          CSV, Excel (.xlsx), JSON • Max 50 MB par fichier
         </p>
       </div>
 

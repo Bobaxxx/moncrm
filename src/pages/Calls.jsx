@@ -32,8 +32,10 @@ import {
   getFolders
 } from '../services/api';
 import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS } from '../utils/constants';
+import { useStatuts } from '../contexts/useWorkspace';
 
 export default function Calls() {
+  const { DEFAULT_CATEGORY, isSaas } = useStatuts();
   const [prospects, setProspects] = useState([]);
   const [imports, setImports] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -137,7 +139,7 @@ export default function Calls() {
         if (fetchedFolders.length > 0) {
           initialCategory = fetchedFolders[0].name;
         } else if (fetchedImports.length > 0) {
-          const categories = [...new Set(fetchedImports.map(i => i.category || 'Serrurier'))];
+          const categories = [...new Set(fetchedImports.map(i => i.category || DEFAULT_CATEGORY))];
           if (categories.length > 0) initialCategory = categories[0];
         }
       }
@@ -172,6 +174,7 @@ export default function Calls() {
         departement: filters.departement,
         page: currentPage,
         limit: 50,
+        has_phone: 'true', // On n'affiche que les prospects joignables par téléphone
       };
 
       if (filters.import_id) {
@@ -719,7 +722,7 @@ export default function Calls() {
 
             {/* Sheets items */}
             {imports
-              .filter(imp => (imp.category || 'Serrurier') === activeCategory)
+              .filter(imp => (imp.category || DEFAULT_CATEGORY) === activeCategory)
               .map((imp) => {
                 const isActive = filters.import_id.toString() === imp.id.toString();
                 const filename = (imp.filename || 'Import').replace('.csv', '').replace('.json', '');
@@ -838,7 +841,7 @@ export default function Calls() {
               <textarea
                 value={callbackNotes}
                 onChange={(e) => setCallbackNotes(e.target.value)}
-                placeholder="Ex : proposer la maquette..."
+                placeholder={isSaas ? 'Ex : rappeler le gérant pour caler la démo...' : 'Ex : proposer la maquette...'}
                 rows="3"
                 className="input-field text-sm resize-none"
               />

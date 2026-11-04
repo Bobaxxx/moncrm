@@ -42,7 +42,11 @@ export const SOURCE_LABELS = {
   pagesjaunes: 'Pages Jaunes',
   facebook: 'Facebook',
   instagram: 'Instagram',
-  business_site: 'Business.site'
+  business_site: 'Business.site',
+  pappers: 'Pappers',
+  annuaire: 'Annuaire Entreprises',
+  import: 'Import',
+  manuel: 'Manuel'
 };
 
 export const SOURCE_BADGE_CLASS = {
@@ -51,7 +55,11 @@ export const SOURCE_BADGE_CLASS = {
   pagesjaunes: 'badge-pagesjaunes',
   facebook: 'badge-facebook',
   instagram: 'badge-instagram',
-  business_site: 'badge-business_site'
+  business_site: 'badge-business_site',
+  pappers: 'badge-pagesjaunes',
+  annuaire: 'badge-solocal',
+  import: 'badge-maps',
+  manuel: 'badge-maps'
 };
 
 export const STATUT_ORDER = [
@@ -64,3 +72,58 @@ export const STATUT_ORDER = [
   'pas_de_budget',
   'client_signe'
 ];
+
+// =====================================================================
+// ESPACE SAAS (PlanniBat)
+// =====================================================================
+
+export const SAAS_STATUT_LABELS = {
+  a_contacter: 'À contacter',
+  visite_ou_contact_tente: 'Visite / contact tenté',
+  echange_qualifie: 'Échange qualifié',
+  demo_faite: 'Démo faite',
+  essai_actif: 'Essai actif',
+  abonne: 'Abonné',
+  perdu: 'Perdu'
+};
+
+export const SAAS_STATUT_COLORS = {
+  a_contacter: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/40', dot: 'bg-blue-400' },
+  visite_ou_contact_tente: { bg: 'bg-amber-500/20', text: 'text-amber-400', border: 'border-amber-500/40', dot: 'bg-amber-400' },
+  echange_qualifie: { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/40', dot: 'bg-purple-400' },
+  demo_faite: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/40', dot: 'bg-cyan-400' },
+  essai_actif: { bg: 'bg-indigo-500/20', text: 'text-indigo-400', border: 'border-indigo-500/40', dot: 'bg-indigo-400' },
+  abonne: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/40', dot: 'bg-emerald-400' },
+  perdu: { bg: 'bg-rose-500/20', text: 'text-rose-400', border: 'border-rose-500/40', dot: 'bg-rose-400' }
+};
+
+export const SAAS_STATUT_ORDER = [
+  'a_contacter',
+  'visite_ou_contact_tente',
+  'echange_qualifie',
+  'demo_faite',
+  'essai_actif',
+  'abonne',
+  'perdu'
+];
+
+export const OFFRE_LABELS = {
+  site_web: 'Site web',
+  saas: 'SaaS'
+};
+
+// Configuration complète du pipeline pour un espace donné
+export const getStatutConfig = (offre) => {
+  const isSaas = offre === 'saas';
+  return {
+    offre: isSaas ? 'saas' : 'site_web',
+    isSaas,
+    STATUT_LABELS: isSaas ? SAAS_STATUT_LABELS : STATUT_LABELS,
+    STATUT_COLORS: isSaas ? SAAS_STATUT_COLORS : STATUT_COLORS,
+    STATUT_ORDER: isSaas ? SAAS_STATUT_ORDER : STATUT_ORDER,
+    // Statut "client gagné"
+    SIGNED_STATUT: isSaas ? 'abonne' : 'client_signe',
+    // Dossier proposé par défaut à l'import
+    DEFAULT_CATEGORY: isSaas ? 'BTP' : 'Serrurier'
+  };
+};

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Phone, MapPin, Globe, GripVertical, ExternalLink, ChevronDown, ChevronUp, Trash2, UserSearch, Smartphone, Send } from 'lucide-react';
+import { Phone, MapPin, Globe, GripVertical, ExternalLink, ChevronDown, ChevronUp, Trash2, UserSearch, Smartphone, Send, User, Briefcase, Users, FileSearch, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SOURCE_LABELS, SOURCE_BADGE_CLASS } from '../../utils/constants';
 import { deleteProspect } from '../../services/api';
@@ -69,6 +69,37 @@ export default function ProspectCard({ prospect, onUpdate, onDelete, isDragging 
         </div>
       </div>
 
+      {/* SaaS : décideur & activité */}
+      {(prospect.dirigeant || prospect.activite) && (
+        <div className="mt-2.5 space-y-1">
+          {prospect.dirigeant && (
+            <div className="flex items-center gap-1.5 text-xs text-surface-300">
+              <User className="w-3 h-3 text-surface-600" />
+              <span className="truncate">{prospect.dirigeant}</span>
+            </div>
+          )}
+          {prospect.activite && (
+            <div className="flex items-center gap-1.5 text-[11px] text-surface-500">
+              <Briefcase className="w-3 h-3 text-surface-600" />
+              <span className="truncate">{prospect.activite}</span>
+              {prospect.effectif && (
+                <span className="flex items-center gap-0.5 ml-auto flex-shrink-0 text-surface-500">
+                  <Users className="w-3 h-3" />
+                  {prospect.effectif}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {prospect.statut === 'perdu' && prospect.raison_perte && (
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-lg px-2 py-1">
+          <XCircle className="w-3 h-3 flex-shrink-0" />
+          <span className="truncate">{prospect.raison_perte}</span>
+        </div>
+      )}
+
       {/* Phone */}
       {prospect.telephone && (
         <div className="flex items-center justify-between mt-2.5">
@@ -102,6 +133,20 @@ export default function ProspectCard({ prospect, onUpdate, onDelete, isDragging 
               </a>
               <ExternalLink className="w-3 h-3 text-surface-600" />
             </div>
+          )}
+          {prospect.url_fiche && (
+            <a href={prospect.url_fiche} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300">
+              <FileSearch className="w-3 h-3" />
+              Fiche entreprise
+              <ExternalLink className="w-3 h-3 text-surface-600" />
+            </a>
+          )}
+          {prospect.linkedin_url && (
+            <a href={prospect.linkedin_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-primary-400 hover:text-primary-300">
+              <User className="w-3 h-3" />
+              LinkedIn
+              <ExternalLink className="w-3 h-3 text-surface-600" />
+            </a>
           )}
           {prospect.notes && (
             <p className="text-xs text-surface-500 italic bg-surface-900/40 rounded-lg px-3 py-2">

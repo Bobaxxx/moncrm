@@ -18,17 +18,25 @@ import {
   FileText,
   Star,
   Package,
-  PhoneCall
+  PhoneCall,
+  Globe,
+  Boxes
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkspace } from '../../contexts/useWorkspace';
 
-const NAV_ITEMS = [
+const WORKSPACES = [
+  { value: 'site_web', label: 'Site web', icon: Globe },
+  { value: 'saas', label: 'SaaS', icon: Boxes }
+];
+
+const getNavItems = (isSaas) => [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord', desc: 'Vue d\'ensemble' },
   { path: '/todo', icon: ListTodo, label: 'Tâches du jour', desc: 'Ma liste quotidienne' },
   { path: '/calls', icon: PhoneCall, label: 'Appels', desc: 'Prospection téléphonique' },
   { path: '/database', icon: Database, label: 'Base de données', desc: 'Gestion des prospects' },
-  { path: '/pipeline', icon: TrendingUp, label: 'Pipeline', desc: 'Suivi des ventes' },
-  { path: '/clients', icon: Star, label: 'Clients Signés', desc: 'Contrats & Facturation' },
+  { path: '/pipeline', icon: TrendingUp, label: 'Pipeline', desc: isSaas ? 'Du dépôt à l\'abonnement' : 'Suivi des ventes' },
+  { path: '/clients', icon: Star, label: isSaas ? 'Abonnés' : 'Clients Signés', desc: isSaas ? 'Abonnements & MRR' : 'Contrats & Facturation' },
   { path: '/analytics', icon: FileText, label: 'Bilan de jour', desc: 'Analyses & KPI' },
   { path: '/calls-analytics', icon: PhoneCall, label: 'Bilan des Appels', desc: 'Analyses des Appels' },
   { path: '/import', icon: Upload, label: 'Importation', desc: 'Ajouter des fichiers' },
@@ -41,6 +49,8 @@ export default function Sidebar() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showAddModal, setShowAddModal] = useState(false);
+  const { offre, setOffre, isSaas } = useWorkspace();
+  const navItems = getNavItems(isSaas);
 
   const handleSignOut = async () => {
     await signOut();
@@ -60,6 +70,31 @@ export default function Sidebar() {
         </Link>
       </div>
 
+      {/* Sélecteur d'espace */}
+      <div className="px-6 pt-2">
+        <p className="text-[10px] uppercase font-bold text-surface-600 tracking-widest mb-2 ml-1">Espace</p>
+        <div className="grid grid-cols-2 gap-1 p-1 bg-surface-900/60 border border-surface-800/60 rounded-2xl" role="tablist" aria-label="Espace de travail">
+          {WORKSPACES.map(({ value, label, icon: Icon }) => {
+            const active = offre === value;
+            return (
+              <button
+                key={value}
+                role="tab"
+                aria-selected={active}
+                onClick={() => !active && setOffre(value)}
+                className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all
+                  ${active
+                    ? (value === 'saas' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-primary-500/15 text-primary-300 border border-primary-500/30')
+                    : 'text-surface-500 hover:text-surface-200 border border-transparent'}`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="px-6 py-4 mb-4">
         <button
           onClick={() => setShowAddModal(true)}
@@ -72,7 +107,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 space-y-1 mt-2 overflow-y-auto no-scrollbar">
-        {NAV_ITEMS.map((item) => (
+        {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}

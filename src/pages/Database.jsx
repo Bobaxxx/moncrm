@@ -10,7 +10,8 @@ import {
   Settings2,
   GripHorizontal,
   Smartphone,
-  Download
+  Download,
+  PhoneCall
 } from 'lucide-react';
 import { 
   getProspects, 
@@ -23,15 +24,22 @@ import {
   updateImportStatus,
   getFolders,
   createFolder,
-  deleteFolder
+  deleteFolder,
+  getPendingEnrichmentCount,
+  enrichProspectPhone
 } from '../services/api';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import ProspectTable from '../components/database/ProspectTable';
 import SheetManager from '../components/database/SheetManager';
-import { STATUT_LABELS } from '../utils/constants';
+import EnrichmentProgress from '../components/enrichment/EnrichmentProgress';
+import useEnrichmentJob from '../hooks/useEnrichmentJob';
+import { useStatuts } from '../contexts/useWorkspace';
 
 export default function Database() {
+  const { STATUT_LABELS, isSaas, DEFAULT_CATEGORY } = useStatuts();
   const [prospects, setProspects] = useState([]);
+  const reloadRef = useRef(null);
+  const enrichment = useEnrichmentJob({ onFinish: () => reloadRef.current?.() });
   const [imports, setImports] = useState([]);
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +126,7 @@ export default function Database() {
           if (fetchedFolders.length > 0) {
             initialCategory = fetchedFolders[0].name;
           } else if (fetchedImports.length > 0) {
-            const categories = [...new Set(fetchedImports.map(i => i.category || 'Serrurier'))];
+            const categories = [...new Set(fetchedImports.map(i => i.category || DEFAULT_CATEGORY))];
             if (categories.length > 0) initialCategory = categories[0];
           }
         }
@@ -176,7 +184,7 @@ export default function Database() {
 
   const handleUpdate = async (id, data) => {
     try {
-      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut'];
+      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite'];
       const filteredData = {};
       allowedFields.forEach(field => {
         if (data[field] !== undefined) filteredData[field] = data[field];
@@ -222,6 +230,58 @@ export default function Database() {
   };
 
 
+  // Recharge la liste à la fin d'un enrichissement en masse
+  useEffect(() => { reloadRef.current = () => loadData(false); }, [loadData]);
+
+  // Sélection courante : feuille active, sinon dossier actif
+  const currentEnrichmentScope = () => (filters.import_id
+    ? { import_id: filters.import_id }
+    : filters.category ? { category: filters.category } : {});
+
+  const handleBulkEnrich = async () => {
+    if (enrichment.configured === false) {
+      alert("L'enrichissement n'est pas configuré : ajoute TOMTOM_API_KEY (gratuit) ou GOOGLE_PLACES_API_KEY dans server/.env puis redémarre le serveur.");
+      return;
+    }
+    const scope = currentEnrichmentScope();
+    try {
+      const { data } = await getPendingEnrichmentCount(scope);
+      let filter = scope;
+      if (data.count > 0) {
+        if (!confirm(`${data.count} prospect(s) sans téléphone dans cette sélection.\nLancer la recherche automatique ?`)) return;
+      } else {
+        const retry = await getPendingEnrichmentCount({ ...scope, retry: true });
+        if (retry.data.count === 0) {
+          alert('Aucun prospect sans téléphone à rechercher dans cette sélection.');
+          return;
+        }
+        if (!confirm(`Tous les prospects ont déjà été cherchés.\nRelancer la recherche pour les ${retry.data.count} non trouvés / incertains ?`)) return;
+        filter = { ...scope, retry: true };
+      }
+      await enrichment.start(filter);
+    } catch (err) {
+      alert(err.response?.data?.error || "Impossible de lancer l'enrichissement");
+    }
+  };
+
+  // Recherche immédiate pour une ligne (bouton dans le tableau)
+  const handleEnrichOne = async (id) => {
+    try {
+      const { data } = await enrichProspectPhone(id);
+      if (data.status === 'found') {
+        setProspects(prev => prev.map(p => p.id === id
+          ? { ...p, telephone: data.telephone, url_site: data.url_site || p.url_site, google_maps_url: data.google_maps_url || p.google_maps_url, enrichment_status: 'found' }
+          : p));
+      } else {
+        setProspects(prev => prev.map(p => p.id === id ? { ...p, enrichment_status: data.status } : p));
+      }
+      return data;
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erreur lors de la recherche du téléphone');
+      return null;
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!confirm('Supprimer ce prospect définitivement ?')) return;
     try {
@@ -245,7 +305,9 @@ export default function Database() {
       setImports(importsRes.data || []);
     } catch (err) {
       console.error('Sheet delete error:', err);
-      alert('Erreur lors de la suppression de la feuille');
+      const detail = err.response?.data?.error
+        || (err.response ? `HTTP ${err.response.status}` : 'serveur injoignable (est-il lancé ?)');
+      alert(`Erreur lors de la suppression de la feuille : ${detail}`);
     }
   };
 
@@ -300,24 +362,23 @@ export default function Database() {
         return;
       }
 
-      const headers = ["Entreprise", "Telephone", "Statut", "Ville", "Adresse", "Site Web"];
+      const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const headers = isSaas
+        ? ["Entreprise", "Dirigeant", "Telephone", "Statut", "Ville", "Code postal", "Adresse", "Activite", "Code NAF", "Effectif", "SIREN", "Fiche", "Raison perte"]
+        : ["Entreprise", "Telephone", "Statut", "Ville", "Adresse", "Site Web"];
       const csvRows = [
         headers.join(','),
-        ...allProspects.map(p => [
-          `"${(p.nom_entreprise || '').replace(/"/g, '""')}"`,
-          `"${(p.telephone || '').replace(/"/g, '""')}"`,
-          `"${(STATUT_LABELS[p.statut] || p.statut || '').replace(/"/g, '""')}"`,
-          `"${(p.departement || '').replace(/"/g, '""')}"`,
-          `"${(p.adresse || '').replace(/"/g, '""')}"`,
-          `"${(p.url_site || '').replace(/"/g, '""')}"`
-        ].join(','))
+        ...allProspects.map(p => (isSaas
+          ? [p.nom_entreprise, p.dirigeant, p.telephone, STATUT_LABELS[p.statut] || p.statut, p.ville || p.departement, p.code_postal, p.adresse, p.activite, p.code_naf, p.effectif, p.siren, p.url_fiche, p.raison_perte]
+          : [p.nom_entreprise, p.telephone, STATUT_LABELS[p.statut] || p.statut, p.departement, p.adresse, p.url_site]
+        ).map(cell).join(','))
       ];
 
       const blob = new Blob(["\ufeff" + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      link.setAttribute("download", `export_prospects_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute("download", `export_prospects_${isSaas ? 'saas_' : ''}${new Date().toISOString().split('T')[0]}.csv`);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
@@ -368,7 +429,7 @@ export default function Database() {
           <div>
             <h1 className="text-2xl font-bold text-surface-50 flex items-center gap-2">
               <DbIcon className="w-6 h-6 text-primary-500" />
-              Ma Base de Données
+              Ma Base de Données{isSaas ? ' SaaS' : ''}
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -387,14 +448,28 @@ export default function Database() {
               </button>
             )}
 
-            <button 
-              onClick={handleBulkSmsStatus}
-              className="px-3 py-1.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-500 rounded-xl border border-amber-500/20 transition-all flex items-center gap-2 text-xs font-bold mr-2"
-              title="Passer en 'SMS envoyé' tous ceux qui ont Facebook ou un 06/07"
-            >
-              <Smartphone className="w-3.5 h-3.5" />
-              Auto-Statut SMS
-            </button>
+            {!isSaas && (
+              <button
+                onClick={handleBulkSmsStatus}
+                className="px-3 py-1.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-500 rounded-xl border border-amber-500/20 transition-all flex items-center gap-2 text-xs font-bold mr-2"
+                title="Passer en 'SMS envoyé' tous ceux qui ont Facebook ou un 06/07"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                Auto-Statut SMS
+              </button>
+            )}
+
+            {isSaas && (
+              <button
+                onClick={handleBulkEnrich}
+                disabled={enrichment.job?.status === 'running'}
+                className="px-3 py-1.5 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-400 rounded-xl border border-emerald-500/20 transition-all flex items-center gap-2 text-xs font-bold mr-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Rechercher automatiquement les téléphones des prospects de la sélection qui n'en ont pas"
+              >
+                <PhoneCall className="w-3.5 h-3.5" />
+                Enrichir les téléphones manquants
+              </button>
+            )}
 
             <button 
               onClick={handleDownloadCsv}
@@ -429,6 +504,14 @@ export default function Database() {
         </div>
       </div>
 
+      {isSaas && (
+        <EnrichmentProgress
+          job={enrichment.job}
+          onCancel={enrichment.cancel}
+          onDismiss={enrichment.dismiss}
+        />
+      )}
+
       {/* Main Table Area */}
       <div className="flex-1 min-h-0 bg-surface-900/20 border border-surface-800/40 rounded-xl overflow-hidden flex flex-col">
         <div className="flex-1 overflow-auto bg-surface-950/40 relative no-scrollbar">
@@ -442,7 +525,8 @@ export default function Database() {
                 prospects={prospects} 
                 onUpdate={handleUpdate} 
                 onBulkUpdate={handleBulkUpdate}
-                onDelete={handleDelete} 
+                onDelete={handleDelete}
+                onEnrichPhone={isSaas ? handleEnrichOne : undefined}
               />
               
               {hasMore && (
@@ -526,7 +610,7 @@ export default function Database() {
                   <Layers className="w-3 h-3" />
                   {folder.name}
                 </button>
-                {activeCategory === folder.name && folder.name !== 'Serrurier' && (
+                {activeCategory === folder.name && folder.name !== DEFAULT_CATEGORY && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folder); }}
                     className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/folder:opacity-100 transition-opacity"
@@ -583,10 +667,10 @@ export default function Database() {
                     className="flex items-end h-full"
                   >
                     {imports
-                      .filter(imp => (imp.category || 'Serrurier') === activeCategory)
+                      .filter(imp => (imp.category || DEFAULT_CATEGORY) === activeCategory)
                       .map((imp, index) => {
                       const isActive = filters.import_id.toString() === imp.id.toString();
-                      const filename = (imp.filename || 'Import').replace('.csv', '').replace('.json', '');
+                      const filename = (imp.filename || 'Import').replace(/\.(csv|json|xlsx)$/i, '');
                       
                       return (
                         <Draggable key={imp.id.toString()} draggableId={imp.id.toString()} index={index}>
