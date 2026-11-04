@@ -76,7 +76,7 @@ export const previewFile = (files, useFilter = true) => {
   formData.append('useFilter', useFilter);
   return api.post('/imports/preview', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 30000
+    timeout: 120000
   });
 };
 

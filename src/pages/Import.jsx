@@ -87,7 +87,16 @@ export default function Import() {
       setPreviewData(res.data);
       setStep(2);
     } catch (err) {
-      setError("Erreur lors de l'analyse des fichiers. Vérifiez le format (CSV, Excel .xlsx ou JSON).");
+      const serverMsg = err.response?.data?.error;
+      if (err.code === 'ECONNABORTED') {
+        setError("Le serveur a mis trop de temps à répondre (fichier volumineux ou serveur en veille). Réessaie dans quelques secondes.");
+      } else if (!err.response || (!serverMsg && err.response.status >= 500)) {
+        setError(`Serveur injoignable ou en erreur (code ${err.response?.status ?? 'réseau'}). Consulte les logs du serveur.`);
+      } else if (serverMsg) {
+        setError(`Erreur lors de l'analyse : ${serverMsg}`);
+      } else {
+        setError("Erreur lors de l'analyse des fichiers. Vérifiez le format (CSV, Excel .xlsx ou JSON).");
+      }
       console.error(err);
     } finally {
       setLoading(false);
