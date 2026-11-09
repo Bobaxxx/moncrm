@@ -5,8 +5,9 @@ import {
   Search, 
   Layers, 
   MapPin, 
-  Clipboard, 
-  Check, 
+  Clipboard,
+  Copy,
+  Check,
   Calendar, 
   MessageSquare, 
   X, 
@@ -33,7 +34,7 @@ import {
 } from '../services/api';
 import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS } from '../utils/constants';
 import { useStatuts } from '../contexts/useWorkspace';
-import { CLASSEMENTS, ClassementPicker, formatEffectif } from '../components/database/ProspectTable';
+import { CLASSEMENTS, ClassementPicker, formatEffectif, prospectInfoText } from '../components/database/ProspectTable';
 
 export default function Calls() {
   const { DEFAULT_CATEGORY, isSaas } = useStatuts();
@@ -51,6 +52,9 @@ export default function Calls() {
   
   // Note auto-save feedback state
   const [savingNotesId, setSavingNotesId] = useState(null);
+
+  // Retour visuel du bouton "Copier les informations"
+  const [copiedInfoId, setCopiedInfoId] = useState(null);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -269,6 +273,13 @@ export default function Calls() {
       console.error('Delete error:', err);
       alert('Erreur lors de la suppression');
     }
+  };
+
+  // Copie toutes les infos du prospect (même format que la Base de données)
+  const handleCopyInfo = (prospect) => {
+    navigator.clipboard.writeText(prospectInfoText(prospect));
+    setCopiedInfoId(prospect.id);
+    setTimeout(() => setCopiedInfoId(null), 2000);
   };
 
   // Copy to clipboard
@@ -557,6 +568,13 @@ export default function Calls() {
                               <span className={`w-1.5 h-1.5 rounded-full ${statusColorObj.dot}`} />
                               {STATUT_APPEL_LABELS[prospect.statut_appel || 'a_appeler']}
                             </span>
+                            <button
+                              onClick={() => handleCopyInfo(prospect)}
+                              className={`p-1.5 rounded-lg transition-all ${copiedInfoId === prospect.id ? 'text-emerald-400 bg-emerald-500/10' : 'text-surface-500 hover:text-white hover:bg-surface-800'}`}
+                              title="Copier les informations"
+                            >
+                              {copiedInfoId === prospect.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </button>
                             <button
                               onClick={() => handleDelete(prospect.id)}
                               className="p-1.5 text-surface-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"

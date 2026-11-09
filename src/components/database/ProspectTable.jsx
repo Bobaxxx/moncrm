@@ -43,6 +43,15 @@ export const formatEffectif = (raw) => {
   return /plus|\+|au moins/i.test(s) ? `${nums[0]}+` : nums[0];
 };
 
+// Texte copié par le bouton "Copier les informations" (Base de données et Appels)
+export const prospectInfoText = (prospect) => [
+  prospect.nom_entreprise,
+  prospect.dirigeant,
+  prospect.adresse,
+  prospect.telephone,
+  prospect.departement
+].filter(Boolean).join(' ');
+
 export function ClassementPicker({ value, onChange }) {
   return (
     <div className="flex items-center gap-1">
@@ -167,15 +176,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
   };
 
   const handleCopyInfo = (prospect) => {
-    const info = [
-      prospect.nom_entreprise,
-      prospect.dirigeant,
-      prospect.adresse,
-      prospect.telephone,
-      prospect.departement
-    ].filter(Boolean).join(' ');
-    
-    navigator.clipboard.writeText(info);
+    navigator.clipboard.writeText(prospectInfoText(prospect));
     setCopiedId(prospect.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
