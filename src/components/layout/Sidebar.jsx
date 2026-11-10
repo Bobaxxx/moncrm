@@ -19,6 +19,7 @@ import {
   Star,
   Package,
   PhoneCall,
+  ClipboardList,
   Globe,
   Boxes
 } from 'lucide-react';
@@ -34,6 +35,7 @@ const getNavItems = (isSaas) => [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord', desc: 'Vue d\'ensemble' },
   { path: '/todo', icon: ListTodo, label: 'Tâches du jour', desc: 'Ma liste quotidienne' },
   { path: '/calls', icon: PhoneCall, label: 'Appels', desc: 'Prospection téléphonique' },
+  { path: '/call-session', icon: ClipboardList, label: 'Bilan de session', desc: 'Notes & rappels à faire' },
   { path: '/database', icon: Database, label: 'Base de données', desc: 'Gestion des prospects' },
   { path: '/pipeline', icon: TrendingUp, label: 'Pipeline', desc: isSaas ? 'Du dépôt à l\'abonnement' : 'Suivi des ventes' },
   { path: '/clients', icon: Star, label: isSaas ? 'Abonnés' : 'Clients Signés', desc: isSaas ? 'Abonnements & MRR' : 'Contrats & Facturation' },

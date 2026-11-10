@@ -14,6 +14,7 @@ import Facturation from './pages/Facturation';
 import Products from './pages/Products';
 import Login from './pages/Login';
 import Calls from './pages/Calls';
+import CallSession from './pages/CallSession';
 import { AuthProvider } from './contexts/AuthContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import { useWorkspace } from './contexts/useWorkspace';
@@ -31,6 +32,7 @@ function AppContent() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/todo" element={<TodoList />} />
           <Route path="/calls" element={<Calls />} />
+          <Route path="/call-session" element={<CallSession />} />
           <Route path="/database" element={<Database />} />
           <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/analytics" element={<Analytics />} />

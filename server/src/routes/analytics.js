@@ -126,4 +126,76 @@ router.get('/calls-report', async (req, res) => {
   }
 });
 
+// GET /api/analytics/call-session?from=ISO&to=ISO
+// Bilan d'une session d'appels : chaque prospect appelé sur la période, avec son
+// dernier résultat, sa note et son prochain rappel programmé.
+// from/to sont calculés par le navigateur (fuseau local) pour couvrir "la journée".
+router.get('/call-session', async (req, res) => {
+  const offre = getOffre(req);
+  const { from, to } = req.query;
+  if (!from || !to) return res.status(400).json({ error: 'Paramètres from et to requis' });
+
+  try {
+    const { data: logs, error: logsError } = await logsForOffre(offre, 'prospect_id, new_value, created_at')
+      .eq('event_type', 'call_status_change')
+      .gte('created_at', from)
+      .lt('created_at', to)
+      .order('created_at', { ascending: true })
+      .limit(5000);
+    if (logsError) throw logsError;
+
+    // Un prospect peut avoir été appelé plusieurs fois : on garde le dernier résultat
+    const byProspect = new Map();
+    for (const log of logs) {
+      const entry = byProspect.get(log.prospect_id) || { attempts: 0, results: [] };
+      entry.attempts++;
+      entry.results.push(log.new_value);
+      entry.result = log.new_value;
+      entry.called_at = log.created_at;
+      byProspect.set(log.prospect_id, entry);
+    }
+
+    const ids = [...byProspect.keys()];
+    const prospects = [];
+    const PROSPECT_COLUMNS = 'id, nom_entreprise, telephone, dirigeant, ville, departement, effectif, activite, notes, classement, statut, statut_appel';
+    for (let i = 0; i < ids.length; i += 200) {
+      const { data, error } = await supabase.from('prospects')
+        .select(PROSPECT_COLUMNS)
+        .eq('offre', offre)
+        .in('id', ids.slice(i, i + 200));
+      if (error) throw error;
+      prospects.push(...data);
+    }
+
+    // Rappels programmés et pas encore faits (en retard, aujourd'hui, demain...)
+    const { data: callbacks, error: cbError } = await supabase.from('planning_tasks')
+      .select(`id, date, heure_debut, description, prospect_id, prospects!inner(${PROSPECT_COLUMNS}, offre)`)
+      .eq('type', 'appel')
+      .eq('completed', false)
+      .eq('prospects.offre', offre)
+      .order('date', { ascending: true })
+      .order('heure_debut', { ascending: true, nullsFirst: false })
+      .limit(1000);
+    if (cbError) throw cbError;
+
+    // Prochain rappel de chaque prospect de la session
+    const nextCallback = new Map();
+    for (const cb of callbacks) {
+      if (!nextCallback.has(cb.prospect_id)) nextCallback.set(cb.prospect_id, { date: cb.date, heure: cb.heure_debut });
+    }
+
+    const session = prospects
+      .map(p => ({ ...p, ...byProspect.get(p.id), next_callback: nextCallback.get(p.id) || null }))
+      .sort((a, b) => b.called_at.localeCompare(a.called_at));
+
+    res.json({
+      session,
+      callbacks: callbacks.map(({ prospects: p, ...cb }) => ({ ...cb, prospect: p }))
+    });
+  } catch (error) {
+    console.error('Call session error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
