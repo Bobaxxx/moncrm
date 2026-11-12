@@ -181,7 +181,6 @@ export default function Calls() {
         classement: filters.classement || undefined,
         page: currentPage,
         limit: 50,
-        has_phone: 'true', // On n'affiche que les prospects joignables par téléphone
       };
 
       if (filters.import_id) {
@@ -586,6 +585,7 @@ export default function Calls() {
                         </div>
 
                         {/* Phone block */}
+                        {prospect.telephone ? (
                         <div className="flex items-center gap-3">
                           <a 
                             href={`tel:${prospect.telephone}`}
@@ -603,6 +603,23 @@ export default function Calls() {
                             <Clipboard className="w-3.5 h-3.5" />
                           </button>
                         </div>
+                        ) : (
+                        <div className="flex items-center gap-3">
+                          <span className="flex items-center gap-2 text-surface-500 font-semibold text-sm bg-surface-800/40 border border-surface-700/40 px-3.5 py-1.5 rounded-xl">
+                            <Phone className="w-4 h-4" />
+                            Pas de numéro
+                          </span>
+                          <a
+                            href={`https://www.google.com/search?q=${encodeURIComponent([prospect.nom_entreprise, prospect.ville].filter(Boolean).join(' ') + ' téléphone')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-semibold text-primary-400 hover:text-primary-300 underline-offset-2 hover:underline"
+                            title="Chercher le numéro sur Google"
+                          >
+                            Chercher sur Google
+                          </a>
+                        </div>
+                        )}
 
                         {/* Quick Notes Textarea */}
                         <div className="pt-2">
