@@ -50,6 +50,7 @@ export default function Database() {
     import_id: '',
     category: '',
     classement: '',
+    appconduc: '',
   });
 
   const [page, setPage] = useState(1);
@@ -514,6 +515,15 @@ export default function Database() {
                 <option value="none">Pas encore noté</option>
               </select>
             )}
+            <label className="flex items-center gap-2 text-sm text-surface-300 bg-surface-900 border border-surface-800 rounded-xl px-3 py-1.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={filters.appconduc === 'true'}
+                onChange={(e) => handleFilterChange('appconduc', e.target.checked ? 'true' : '')}
+                className="accent-violet-500"
+              />
+              AppConduc
+            </label>
           </div>
         </div>
       </div>

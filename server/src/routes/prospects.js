@@ -6,7 +6,7 @@ const router = Router();
 
 // GET /api/prospects - Liste avec filtres et pagination
 router.get('/', async (req, res) => {
-  const { search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id, has_phone, classement } = req.query;
+  const { search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id, has_phone, classement, appconduc } = req.query;
   const offre = getOffre(req);
   console.log('GET /api/prospects - Filters:', { offre, search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id });
 
@@ -52,6 +52,9 @@ router.get('/', async (req, res) => {
     query = query.is('classement', null);
   } else if (['A', 'B', 'C'].includes(classement)) {
     query = query.eq('classement', classement);
+  }
+  if (appconduc === 'true') {
+    query = query.eq('appconduc', true);
   }
   if (has_phone === 'true') {
     query = query.not('telephone', 'is', null).neq('telephone', '');
@@ -242,7 +245,7 @@ const EDITABLE_FIELDS = [
   'nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'statut_appel',
   'notes', 'maquette_phone', 'siren',
   'ville', 'code_postal', 'activite', 'code_naf', 'effectif', 'dirigeant',
-  'url_fiche', 'linkedin_url', 'raison_perte', 'classement',
+  'url_fiche', 'linkedin_url', 'raison_perte', 'classement', 'appconduc',
   'contrat_type', 'has_maintenance', 'montant_mensuel'
 ];
 

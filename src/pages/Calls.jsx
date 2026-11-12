@@ -74,6 +74,7 @@ export default function Calls() {
     category: '',
     departement: '',
     classement: '',
+    appconduc: false,
   });
   
   // Scheduler State
@@ -179,6 +180,7 @@ export default function Calls() {
         search: filters.search,
         departement: filters.departement,
         classement: filters.classement || undefined,
+        appconduc: filters.appconduc ? 'true' : undefined,
         page: currentPage,
         limit: 50,
       };
@@ -241,6 +243,19 @@ export default function Calls() {
       console.error('Error updating classement:', err);
       setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, classement: previous } : p));
       alert('Impossible d\'enregistrer la note : ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  // Marqueur "à rappeler pour AppConduc"
+  const handleToggleAppconduc = async (prospect) => {
+    const next = !prospect.appconduc;
+    setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, appconduc: next } : p));
+    try {
+      await updateProspect(prospect.id, { appconduc: next });
+    } catch (err) {
+      console.error('Error updating appconduc:', err);
+      setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, appconduc: !next } : p));
+      alert("Impossible d'enregistrer AppConduc : " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -497,6 +512,17 @@ export default function Calls() {
               <option value="none">Pas encore noté</option>
             </select>
           )}
+
+          {/* Prospects marqués pour AppConduc */}
+          <label className="flex items-center gap-2 text-sm text-surface-300 bg-surface-900 border border-surface-800 rounded-xl px-3 py-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={filters.appconduc}
+              onChange={(e) => setFilters(prev => ({ ...prev, appconduc: e.target.checked }))}
+              className="accent-violet-500"
+            />
+            AppConduc seulement
+          </label>
         </div>
       </div>
 
@@ -540,6 +566,18 @@ export default function Calls() {
                                   onChange={(val) => handleClassementChange(prospect, val)}
                                 />
                               )}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleAppconduc(prospect)}
+                                title={prospect.appconduc ? 'Retirer de la liste AppConduc' : 'À rappeler pour AppConduc'}
+                                className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[11px] font-bold border transition-all shrink-0
+                                  ${prospect.appconduc
+                                    ? 'bg-violet-500/15 text-violet-300 border-violet-500/40'
+                                    : 'text-surface-500 border-surface-700 hover:text-violet-300 hover:border-violet-500/40'}`}
+                              >
+                                <input type="checkbox" readOnly checked={!!prospect.appconduc} className="accent-violet-500 pointer-events-none" tabIndex={-1} />
+                                AppConduc
+                              </button>
                             </div>
                             <div className="flex flex-wrap gap-2 items-center mt-1 text-xs text-surface-500">
                               {prospect.departement && (
