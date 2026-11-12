@@ -36,6 +36,43 @@ import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS } from '../utils/constants';
 import { useStatuts } from '../contexts/useWorkspace';
 import { CLASSEMENTS, ClassementPicker, formatEffectif, prospectInfoText } from '../components/database/ProspectTable';
 
+// Saisie rapide d'un numéro pour un prospect qui n'en a pas
+function PhoneAdder({ onSave }) {
+  const [value, setValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    const tel = value.trim();
+    if (!tel || saving) return;
+    setSaving(true);
+    const ok = await onSave(tel);
+    setSaving(false);
+    if (ok) setValue('');
+  };
+  return (
+    <form onSubmit={submit} className="flex items-center gap-2">
+      <div className="relative">
+        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-surface-500" />
+        <input
+          type="tel"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder="Ajouter un numéro"
+          className="input-field pl-9 py-1.5 text-sm w-48 bg-surface-900"
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={!value.trim() || saving}
+        className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-primary-500/15 text-primary-300 border border-primary-500/30 hover:bg-primary-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+      >
+        {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+        Enregistrer
+      </button>
+    </form>
+  );
+}
+
 export default function Calls() {
   const { DEFAULT_CATEGORY, isSaas } = useStatuts();
   const [prospects, setProspects] = useState([]);
@@ -256,6 +293,19 @@ export default function Calls() {
       console.error('Error updating appconduc:', err);
       setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, appconduc: !next } : p));
       alert("Impossible d'enregistrer AppConduc : " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  // Ajout d'un numéro directement depuis la fiche d'appel
+  const handleSavePhone = async (prospect, telephone) => {
+    try {
+      await updateProspect(prospect.id, { telephone });
+      setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, telephone } : p));
+      return true;
+    } catch (err) {
+      console.error('Error saving phone:', err);
+      alert("Impossible d'enregistrer le numéro : " + (err.response?.data?.error || err.message));
+      return false;
     }
   };
 
@@ -642,11 +692,8 @@ export default function Calls() {
                           </button>
                         </div>
                         ) : (
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-2 text-surface-500 font-semibold text-sm bg-surface-800/40 border border-surface-700/40 px-3.5 py-1.5 rounded-xl">
-                            <Phone className="w-4 h-4" />
-                            Pas de numéro
-                          </span>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <PhoneAdder onSave={(tel) => handleSavePhone(prospect, tel)} />
                           <a
                             href={`https://www.google.com/search?q=${encodeURIComponent([prospect.nom_entreprise, prospect.ville].filter(Boolean).join(' ') + ' téléphone')}`}
                             target="_blank"
