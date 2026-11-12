@@ -29,6 +29,11 @@ import {
   enrichProspectPhone
 } from '../services/api';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+
+// Le filtre AppConduc cherche dans toute la base : on ignore alors le dossier / la feuille ouverts
+const queryFilters = (filters) => (filters.appconduc === 'true'
+  ? { ...filters, category: '', import_id: '' }
+  : filters);
 import ProspectTable, { CLASSEMENTS } from '../components/database/ProspectTable';
 import SheetManager from '../components/database/SheetManager';
 import EnrichmentProgress from '../components/enrichment/EnrichmentProgress';
@@ -154,7 +159,7 @@ export default function Database() {
 
     try {
       const currentPage = isLoadMore ? page + 1 : 1;
-      const prospectsRes = await getProspects({ ...filters, page: currentPage, limit: 100 });
+      const prospectsRes = await getProspects({ ...queryFilters(filters), page: currentPage, limit: 100 });
 
       const resData = prospectsRes.data;
       const newData = resData.data || [];
@@ -186,7 +191,7 @@ export default function Database() {
 
   const handleUpdate = async (id, data) => {
     try {
-      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite', 'classement', 'effectif'];
+      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite', 'classement', 'effectif', 'appconduc'];
       const filteredData = {};
       allowedFields.forEach(field => {
         if (data[field] !== undefined) filteredData[field] = data[field];
@@ -356,7 +361,7 @@ export default function Database() {
   const handleDownloadCsv = async () => {
     setLoading(true);
     try {
-      const res = await getProspects({ ...filters, nopagination: true });
+      const res = await getProspects({ ...queryFilters(filters), nopagination: true });
       const allProspects = res.data.data || [];
 
       if (allProspects.length === 0) {
@@ -515,15 +520,18 @@ export default function Database() {
                 <option value="none">Pas encore noté</option>
               </select>
             )}
-            <label className="flex items-center gap-2 text-sm text-surface-300 bg-surface-900 border border-surface-800 rounded-xl px-3 py-1.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={filters.appconduc === 'true'}
-                onChange={(e) => handleFilterChange('appconduc', e.target.checked ? 'true' : '')}
-                className="accent-violet-500"
-              />
-              AppConduc
-            </label>
+            <button
+              type="button"
+              onClick={() => handleFilterChange('appconduc', filters.appconduc === 'true' ? '' : 'true')}
+              title="Afficher tous les prospects marqués AppConduc (tous dossiers et feuilles confondus)"
+              className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all
+                ${filters.appconduc === 'true'
+                  ? 'bg-violet-500/20 text-violet-200 border-violet-500/50 shadow-lg shadow-violet-500/10'
+                  : 'bg-violet-600/10 text-violet-400 border-violet-500/20 hover:bg-violet-600/20'}`}
+            >
+              <input type="checkbox" readOnly checked={filters.appconduc === 'true'} className="accent-violet-500 pointer-events-none" tabIndex={-1} />
+              AppConduc seulement
+            </button>
           </div>
         </div>
       </div>

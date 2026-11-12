@@ -200,6 +200,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[120px]">Statut</th>
               {isSaas && <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[110px]">Note</th>}
               {isSaas && <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[90px]">Effectif</th>}
+              <th className="px-4 py-3 font-semibold text-violet-400/80 uppercase text-[10px] tracking-wider w-[100px]">AppConduc</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Ville</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider">{isSaas ? 'Dirigeant / Activité' : 'Site Web'}</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[160px] text-right sticky right-0 bg-surface-950 z-20 shadow-[-12px_0_15px_-10px_rgba(0,0,0,0.5)]">Actions</th>
@@ -365,6 +366,22 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                       )}
                     </td>
                   )}
+
+                  {/* Marqueur AppConduc */}
+                  <td className="px-4 py-3">
+                    <label
+                      className="inline-flex items-center gap-1.5 cursor-pointer select-none"
+                      title={p.appconduc ? 'Retirer de la liste AppConduc' : 'Marquer pour AppConduc'}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!p.appconduc}
+                        onChange={(e) => onUpdate(p.id, { appconduc: e.target.checked })}
+                        className="w-4 h-4 accent-violet-500 cursor-pointer"
+                      />
+                      {p.appconduc && <span className="text-[11px] font-bold text-violet-300">Oui</span>}
+                    </label>
+                  </td>
 
                   {/* Ville */}
                   <td className="px-4 py-3">
