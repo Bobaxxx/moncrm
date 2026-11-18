@@ -35,6 +35,11 @@ router.get('/', async (req, res) => {
   if (statut_appel) {
     if (statut_appel === 'to_call_all') {
       query = query.or('statut_appel.in.(a_appeler,a_rappeler,message_laisse),statut_appel.is.null');
+    } else if (statut_appel === 'a_appeler') {
+      // Jamais appelé : statut "à appeler" ou pas encore de statut
+      query = query.or('statut_appel.eq.a_appeler,statut_appel.is.null');
+    } else if (statut_appel === 'deja_appele') {
+      query = query.in('statut_appel', ['appele', 'a_rappeler', 'message_laisse', 'pas_interesse']);
     } else {
       query = query.eq('statut_appel', statut_appel);
     }

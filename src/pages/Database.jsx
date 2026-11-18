@@ -56,6 +56,7 @@ export default function Database() {
     category: '',
     classement: '',
     appconduc: '',
+    statut_appel: '',
   });
 
   const [page, setPage] = useState(1);
@@ -191,7 +192,7 @@ export default function Database() {
 
   const handleUpdate = async (id, data) => {
     try {
-      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite', 'classement', 'effectif', 'appconduc'];
+      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite', 'classement', 'effectif', 'appconduc', 'statut_appel'];
       const filteredData = {};
       allowedFields.forEach(field => {
         if (data[field] !== undefined) filteredData[field] = data[field];
@@ -497,6 +498,20 @@ export default function Database() {
                 className="input-field w-64 pl-10 py-1.5 text-sm"
               />
             </div>
+            <select
+              value={filters.statut_appel}
+              onChange={(e) => handleFilterChange('statut_appel', e.target.value)}
+              className="input-field py-1.5 text-sm bg-surface-900 shadow-xl"
+              title="Filtrer par résultat d'appel"
+            >
+              <option value="">Tous les appels</option>
+              <option value="a_appeler">Jamais appelé</option>
+              <option value="deja_appele">Déjà appelé (tous résultats)</option>
+              <option value="appele">Appelé (répondu)</option>
+              <option value="a_rappeler">À rappeler</option>
+              <option value="message_laisse">Message laissé</option>
+              <option value="pas_interesse">Pas intéressé</option>
+            </select>
             <select 
               value={filters.statut} 
               onChange={(e) => handleFilterChange('statut', e.target.value)}

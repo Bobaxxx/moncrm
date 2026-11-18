@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStatuts } from '../../contexts/useWorkspace';
+import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS } from '../../utils/constants';
 
 // Libellé affiché quand la recherche automatique n'a pas abouti
 const ENRICH_FAIL_LABEL = {
@@ -198,6 +199,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[250px]">Entreprise</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Téléphone</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[120px]">Statut</th>
+              <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[140px]">Appel</th>
               {isSaas && <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[110px]">Note</th>}
               {isSaas && <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[90px]">Effectif</th>}
               <th className="px-4 py-3 font-semibold text-violet-400/80 uppercase text-[10px] tracking-wider w-[100px]">AppConduc</th>
@@ -334,6 +336,26 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                         </div>
                       )}
                     </div>
+                  </td>
+
+                  {/* Statut d'appel (même valeur que sur la page Appels) */}
+                  <td className="px-4 py-3">
+                    {(() => {
+                      const key = p.statut_appel || 'a_appeler';
+                      const c = STATUT_APPEL_COLORS[key] || STATUT_APPEL_COLORS.a_appeler;
+                      return (
+                        <select
+                          value={key}
+                          onChange={(e) => onUpdate(p.id, { statut_appel: e.target.value })}
+                          title="Résultat d'appel"
+                          className={`text-[11px] font-bold rounded-lg border px-2 py-1 cursor-pointer outline-none ${c.bg} ${c.text} ${c.border}`}
+                        >
+                          {Object.entries(STATUT_APPEL_LABELS).map(([val, label]) => (
+                            <option key={val} value={val} className="bg-surface-900 text-surface-100">{label}</option>
+                          ))}
+                        </select>
+                      );
+                    })()}
                   </td>
 
                   {/* Note de classement (SaaS) */}
