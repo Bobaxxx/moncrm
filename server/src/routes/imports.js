@@ -619,6 +619,33 @@ router.get('/', async (req, res) => {
 });
 
 
+// GET /api/imports/counts - Nombre réel de prospects par feuille (en base, pas au moment de l'import)
+// { [import_id]: { total, a_appeler } } ; a_appeler = encore à traiter sur la page Appels
+const TO_CALL = new Set([null, 'a_appeler', 'a_rappeler', 'message_laisse']);
+router.get('/counts', async (req, res) => {
+  const offre = getOffre(req);
+  try {
+    const counts = {};
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await supabase.from('prospects')
+        .select('import_id, statut_appel')
+        .eq('offre', offre).not('import_id', 'is', null)
+        .order('id', { ascending: true })
+        .range(from, from + 999);
+      if (error) throw error;
+      for (const p of data) {
+        const c = counts[p.import_id] || (counts[p.import_id] = { total: 0, a_appeler: 0 });
+        c.total++;
+        if (TO_CALL.has(p.statut_appel ?? null)) c.a_appeler++;
+      }
+      if (data.length < 1000) break;
+    }
+    res.json(counts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.patch('/reorder', async (req, res) => {
   const { ids } = req.body;
   if (!ids || !Array.isArray(ids)) return res.status(400).json({ error: 'Liste IDs invalide' });

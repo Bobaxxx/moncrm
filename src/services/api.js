@@ -82,6 +82,7 @@ export const previewFile = (files, useFilter = true) => {
 };
 
 export const getImportHistory = () => api.get('/imports');
+export const getImportCounts = () => api.get('/imports/counts');
 export const deleteImport = (id) => api.delete(`/imports/${id}`);
 export const bulkDeleteImports = (ids) => api.post('/imports/bulk-delete', { ids });
 export const updateImportOrder = (ids) => api.patch('/imports/reorder', { ids });

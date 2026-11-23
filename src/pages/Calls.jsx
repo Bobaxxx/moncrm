@@ -27,7 +27,8 @@ import {
   getProspects, 
   updateProspect, 
   deleteProspect,
-  getImportHistory, 
+  getImportHistory,
+  getImportCounts,
   getAnalyticsSummary,
   createPlanningTask,
   getFolders
@@ -162,6 +163,16 @@ export default function Calls() {
   const { DEFAULT_CATEGORY, isSaas } = useStatuts();
   const [prospects, setProspects] = useState([]);
   const [imports, setImports] = useState([]);
+  // Compteurs réels par feuille : { [import_id]: { total, a_appeler } }
+  const [sheetCounts, setSheetCounts] = useState({});
+  const loadSheetCounts = useCallback(async () => {
+    try {
+      const res = await getImportCounts();
+      setSheetCounts(res.data || {});
+    } catch (err) {
+      console.error('Error loading sheet counts:', err);
+    }
+  }, []);
   const [folders, setFolders] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -345,6 +356,7 @@ export default function Calls() {
   useEffect(() => {
     loadMetadata();
     loadStats();
+    loadSheetCounts();
   }, []);
 
   // Synchronize category filter with activeCategory
@@ -450,6 +462,7 @@ export default function Calls() {
       
       // Refresh daily calls count from API
       loadStats();
+      loadSheetCounts();
       
     } catch (err) {
       console.error('Error updating prospect status:', err);
@@ -464,6 +477,7 @@ export default function Calls() {
       await deleteProspect(id);
       setProspects(prev => prev.filter(p => p.id !== id));
       loadStats();
+      loadSheetCounts();
     } catch (err) {
       console.error('Delete error:', err);
       alert('Erreur lors de la suppression');
@@ -1053,7 +1067,12 @@ export default function Calls() {
                   >
                     <div className={`w-2 h-2 rounded-full ${imp.is_completed ? 'bg-emerald-500' : 'bg-surface-600'}`} />
                     <span className="max-w-[130px] truncate">{filename}</span>
-                    <span className="text-[10px] text-surface-600">({imp.lignes_importees || 0})</span>
+                    <span
+                      className="text-[10px] text-surface-600"
+                      title={`${sheetCounts[imp.id]?.a_appeler ?? 0} à appeler sur ${sheetCounts[imp.id]?.total ?? 0} prospects dans la feuille`}
+                    >
+                      ({sheetCounts[imp.id]?.a_appeler ?? 0}/{sheetCounts[imp.id]?.total ?? 0})
+                    </span>
                   </div>
                 );
               })}
