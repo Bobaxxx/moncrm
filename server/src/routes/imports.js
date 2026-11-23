@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import Papa from 'papaparse';
 import ExcelJS from 'exceljs';
 import { supabase } from '../db/database.js';
-import { getOffre, DEFAULT_CATEGORY } from '../utils/offre.js';
+import { isSaasLike, getOffre, DEFAULT_CATEGORY } from '../utils/offre.js';
 import { isEnrichmentConfigured } from '../services/phoneEnrichment.js';
 import { startJob } from '../services/enrichmentJobs.js';
 import { UPLOAD_DIR } from '../utils/paths.js';
@@ -138,6 +138,12 @@ const headerMatches = (normalizedHeader, pattern) => {
 // Ordre = priorité. Un en-tête n'est attribué qu'à un seul champ.
 // (ex : "Nom du dirigeant" doit aller à dirigeant avant que "nom" ne le capte pour l'entreprise)
 const SAAS_RULES = [
+  ['oppose', ['oppose prospection', 'opposition', 'oppose']],
+  ['contact_nom', ['contact nom', 'nom du contact']],
+  ['ca', ['chiffre d affaires', 'ca €', 'ca']],
+  ['annee_ca', ['annee ca']],
+  ['annee_effectif', ['annee effectif']],
+  ['enseigne', ['enseigne']],
   ['statut_source', ['statut prospection', 'statut', 'etape']],
   ['notes', ['notes', 'note', 'commentaire', 'retroaction', 'remarque']],
   ['linkedin_url', ['linkedin']],
@@ -146,6 +152,7 @@ const SAAS_RULES = [
   ['url_fiche', ['url', 'lien', 'link']],
   ['dirigeant', ['dirigeant', 'decideur', 'gerant', 'representant', 'president', 'responsable']],
   ['code_postal', ['code postal', 'postal', 'cp', 'zip']],
+  ['departement', ['departement', 'dep', 'dept']],
   ['activite', ['activite', 'metier', 'libelle', 'secteur', 'categorie', 'category']],
   ['code_naf', ['code naf', 'naf', 'ape']],
   ['effectif', ['effectif', 'salarie', 'tranche']],
@@ -184,7 +191,7 @@ const mapSaasStatut = (raw) => {
   if (!s) return 'a_contacter';
   if (s.includes('exclu')) return 'exclu';
   // "À contacter" contient "contacte" : on le traite avant les autres règles
-  if (s.includes('a contacter') || s.includes('nouveau') || s.includes('a faire')) return 'a_contacter';
+  if (s.includes('a contacter') || s.includes('a appeler') || s.includes('nouveau') || s.includes('a faire')) return 'a_contacter';
   if (s.includes('perdu') || s.includes('refus') || s.includes('pas interesse')) return 'perdu';
   if (s.includes('abonne') || s.includes('client') || s.includes('signe')) return 'abonne';
   if (s.includes('essai') || s.includes('test')) return 'essai_actif';
@@ -194,7 +201,27 @@ const mapSaasStatut = (raw) => {
   return 'a_contacter';
 };
 
-const processSaasRows = (rows, seenKeys = new Set()) => {
+// Tranches INSEE : le fichier donne la borne basse ("10" = 10 à 19 salariés)
+const TRANCHES_EFFECTIF = { 1: 2, 3: 5, 6: 9, 10: 19, 20: 49, 50: 99, 100: 199, 200: 249, 250: 499, 500: 999, 1000: 1999, 2000: 4999, 5000: 9999 };
+const normalizeEffectif = (raw) => {
+  const n = Number(String(raw).trim());
+  return Number.isInteger(n) && TRANCHES_EFFECTIF[n] ? `Entre ${n} et ${TRANCHES_EFFECTIF[n]} salariés` : raw;
+};
+
+const formatCa = (raw, annee) => {
+  const n = Number(String(raw).replace(/[^\d.-]/g, ''));
+  if (!n) return '';
+  const txt = n >= 1e6 ? `${(n / 1e6).toFixed(1).replace('.', ',')} M€` : `${Math.round(n / 1e3)} k€`;
+  return `CA${annee ? ` ${annee}` : ''} : ${txt}`;
+};
+
+// Ligne à ne jamais démarcher : opposition INSEE ou mention "ne pas démarcher"
+const isDoNotContact = (row, opposeValue) => {
+  if (/^(oui|yes|o|true|1|x)$/i.test(String(opposeValue || '').trim())) return true;
+  return Object.values(row).some(v => /ne pas d[ée]marcher/i.test(String(v || '')));
+};
+
+const processSaasRows = (rows, seenKeys = new Set(), offre = 'saas') => {
   const mapping = mapSaasColumns(Object.keys(rows[0]));
   const prospectsToInsert = [];
   const stats = { total: rows.length, imported: 0, filtered: 0, duplicates: 0 };
@@ -212,6 +239,8 @@ const processSaasRows = (rows, seenKeys = new Set()) => {
     const ville = val('ville');
     let codePostal = digitsOnly(val('code_postal'));
     if (codePostal.length === 4) codePostal = `0${codePostal}`; // Excel supprime le 0 initial (01xxx)
+    // Pas de colonne code postal : on le prend dans l'adresse ("... 74000 ANNECY")
+    if (!codePostal) codePostal = (val('adresse').match(/\b(\d{5})\b(?!.*\b\d{5}\b)/) || [])[1] || '';
     let siren = digitsOnly(val('siren'));
     siren = siren.length >= 9 ? siren.slice(0, 9) : '';
 
@@ -233,6 +262,11 @@ const processSaasRows = (rows, seenKeys = new Set()) => {
     if (!nom) {
       stats.filtered++;
       pushPreview(row, 'filtered', 'Nom manquant');
+      continue;
+    }
+    if (isDoNotContact(row, val('oppose'))) {
+      stats.filtered++;
+      pushPreview(row, 'filtered', 'Opposé au démarchage');
       continue;
     }
     const statut = mapSaasStatut(val('statut_source'));
@@ -270,20 +304,25 @@ const processSaasRows = (rows, seenKeys = new Set()) => {
       telephone,
       adresse: adresse || null,
       url_site: val('url_site') || null,
-      departement: ville || codePostal || null,
+      departement: val('departement') || ville || codePostal || null,
       ville: ville || null,
       code_postal: codePostal || null,
       activite: val('activite') || null,
       code_naf: val('code_naf') || null,
-      effectif: val('effectif') || null,
+      effectif: val('effectif') ? normalizeEffectif(val('effectif')) : null,
       dirigeant: val('dirigeant') || null,
       siren: siren || null,
       url_fiche: urlFiche || null,
       linkedin_url: linkedin || null,
-      notes: val('notes') || null,
+      notes: [
+        val('enseigne') && `Enseigne : ${val('enseigne')}`,
+        formatCa(val('ca'), val('annee_ca')),
+        val('contact_nom') && `Contact : ${val('contact_nom')}`,
+        val('notes')
+      ].filter(Boolean).join('\n') || null,
       source,
       statut,
-      offre: 'saas',
+      offre,
       _row: row // retiré avant insertion, sert à l'aperçu
     });
     stats.imported++;
@@ -293,7 +332,7 @@ const processSaasRows = (rows, seenKeys = new Set()) => {
 };
 
 // Retire les prospects SaaS déjà présents en base (même SIREN ou même téléphone)
-const removeExistingSaas = async (prospects, stats, preview) => {
+const removeExistingSaas = async (prospects, stats, preview, offre = 'saas') => {
   if (prospects.length === 0) return prospects;
 
   const sirens = [...new Set(prospects.map(p => p.siren).filter(Boolean))];
@@ -304,13 +343,13 @@ const removeExistingSaas = async (prospects, stats, preview) => {
 
   for (let i = 0; i < sirens.length; i += CHUNK) {
     const { data, error } = await supabase.from('prospects').select('siren')
-      .eq('offre', 'saas').in('siren', sirens.slice(i, i + CHUNK));
+      .eq('offre', offre).in('siren', sirens.slice(i, i + CHUNK));
     if (error) throw error;
     (data || []).forEach(r => existingSirens.add(r.siren));
   }
   for (let i = 0; i < phones.length; i += CHUNK) {
     const { data, error } = await supabase.from('prospects').select('telephone')
-      .eq('offre', 'saas').in('telephone', phones.slice(i, i + CHUNK));
+      .eq('offre', offre).in('telephone', phones.slice(i, i + CHUNK));
     if (error) throw error;
     (data || []).forEach(r => existingPhones.add(r.telephone));
   }
@@ -396,7 +435,7 @@ const readSheets = async (file) => {
 };
 
 // Traitement d'un fichier : une "partie" par onglet (chaque onglet devient une feuille du CRM)
-const processFile = async (file, useFilter = true, offre = 'site_web') => {
+export const processFile = async (file, useFilter = true, offre = 'site_web') => {
   const sheets = await readSheets(file);
   if (!sheets.length) return { error: `Fichier ${file.originalname} est vide` };
 
@@ -408,9 +447,9 @@ const processFile = async (file, useFilter = true, offre = 'site_web') => {
   for (const sheet of sheets) {
     const filename = multi ? `${baseName} - ${sheet.name}` : file.originalname;
 
-    if (offre === 'saas') {
-      const result = processSaasRows(sheet.rows, seenKeys);
-      result.prospectsToInsert = await removeExistingSaas(result.prospectsToInsert, result.stats, result.preview);
+    if (isSaasLike(offre)) {
+      const result = processSaasRows(sheet.rows, seenKeys, offre);
+      result.prospectsToInsert = await removeExistingSaas(result.prospectsToInsert, result.stats, result.preview, offre);
       result.prospectsToInsert = result.prospectsToInsert.map(({ _row, ...p }) => p);
       parts.push({ ...result, filename, sheet: sheet.name, multi });
     } else {
@@ -428,7 +467,7 @@ router.post('/upload', upload.array('files'), async (req, res) => {
   const useFilter = offre === 'site_web' && req.body.useFilter === 'true';
   const category = req.body.category || DEFAULT_CATEGORY[offre];
 
-  const enrichPhones = offre === 'saas' && req.body.enrichPhones === 'true';
+  const enrichPhones = isSaasLike(offre) && req.body.enrichPhones === 'true';
 
   try {
     const results = [];
@@ -506,7 +545,7 @@ router.post('/upload', upload.array('files'), async (req, res) => {
         enrichmentError = "Téléphones non recherchés : ajoute TOMTOM_API_KEY ou GOOGLE_PLACES_API_KEY dans server/.env.";
       } else {
         try {
-          enrichmentJob = await startJob({ import_ids: createdImportIds }, 'Téléphones des prospects importés');
+          enrichmentJob = await startJob({ import_ids: createdImportIds, offre }, 'Téléphones des prospects importés');
         } catch (err) {
           enrichmentError = err.status === 409
             ? 'Un enrichissement est déjà en cours : relance-le depuis la Base de données une fois terminé.'

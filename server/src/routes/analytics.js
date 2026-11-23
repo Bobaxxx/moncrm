@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { supabase } from '../db/database.js';
-import { getOffre, TRACKED_STATUTS, SIGNED_STATUT } from '../utils/offre.js';
+import { getOffre, isSaasLike, TRACKED_STATUTS, SIGNED_STATUT } from '../utils/offre.js';
 
 const router = Router();
 
@@ -76,7 +76,7 @@ router.get('/summary', async (req, res) => {
       appels: data.filter(l => l.event_type === 'call_status_change' && ['appele', 'a_rappeler', 'message_laisse', 'pas_interesse'].includes(l.new_value)).length
     };
 
-    if (offre === 'saas') {
+    if (isSaasLike(offre)) {
       summary.contacts = statusCount('visite_ou_contact_tente');
       summary.echanges = statusCount('echange_qualifie');
       summary.demos = statusCount('demo_faite');
@@ -157,7 +157,7 @@ router.get('/call-session', async (req, res) => {
 
     const ids = [...byProspect.keys()];
     const prospects = [];
-    const PROSPECT_COLUMNS = 'id, nom_entreprise, telephone, dirigeant, ville, departement, effectif, activite, notes, classement, statut, statut_appel';
+    const PROSPECT_COLUMNS = 'id, nom_entreprise, telephone, dirigeant, ville, departement, effectif, activite, notes, classement, interet, raison_perte, statut, statut_appel';
     for (let i = 0; i < ids.length; i += 200) {
       const { data, error } = await supabase.from('prospects')
         .select(PROSPECT_COLUMNS)

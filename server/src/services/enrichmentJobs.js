@@ -40,7 +40,7 @@ const buildTargetQuery = (filter, columns, options) => {
     ? supabase.from('prospects').select(`${columns}, import_history!inner(category)`, options).eq('import_history.category', filter.category)
     : supabase.from('prospects').select(columns, options);
 
-  query = query.eq('offre', 'saas').is('telephone', null);
+  query = query.eq('offre', filter.offre || 'saas').is('telephone', null);
 
   if (filter.ids?.length) query = query.in('id', filter.ids);
   if (filter.import_id) query = query.eq('import_id', filter.import_id);

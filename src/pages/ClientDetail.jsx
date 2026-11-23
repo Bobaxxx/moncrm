@@ -123,7 +123,7 @@ export default function ClientDetail() {
     loadData();
   }, [loadData]);
 
-  const isSaas = prospect?.offre === 'saas';
+  const isSaas = !!prospect?.offre && prospect.offre !== 'site_web';
   const { STATUT_LABELS, STATUT_COLORS } = getStatutConfig(prospect?.offre);
 
   const set = (field) => (e) => setForm(prev => ({ ...prev, [field]: e.target.value }));

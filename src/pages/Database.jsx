@@ -35,6 +35,7 @@ const queryFilters = (filters) => (filters.appconduc === 'true'
   ? { ...filters, category: '', import_id: '' }
   : filters);
 import ProspectTable, { CLASSEMENTS } from '../components/database/ProspectTable';
+import { INTERETS } from '../utils/constants';
 import SheetManager from '../components/database/SheetManager';
 import EnrichmentProgress from '../components/enrichment/EnrichmentProgress';
 import useEnrichmentJob from '../hooks/useEnrichmentJob';
@@ -57,6 +58,8 @@ export default function Database() {
     classement: '',
     appconduc: '',
     statut_appel: '',
+    interet: '',
+    effectif: '',
   });
 
   const [page, setPage] = useState(1);
@@ -192,7 +195,7 @@ export default function Database() {
 
   const handleUpdate = async (id, data) => {
     try {
-      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite', 'classement', 'effectif', 'appconduc', 'statut_appel'];
+      const allowedFields = ['nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'dirigeant', 'activite', 'classement', 'effectif', 'appconduc', 'statut_appel', 'interet'];
       const filteredData = {};
       allowedFields.forEach(field => {
         if (data[field] !== undefined) filteredData[field] = data[field];
@@ -512,6 +515,33 @@ export default function Database() {
               <option value="message_laisse">Message laissé</option>
               <option value="pas_interesse">Pas intéressé</option>
             </select>
+            <select
+              value={filters.interet}
+              onChange={(e) => handleFilterChange('interet', e.target.value)}
+              className="input-field py-1.5 text-sm bg-surface-900 shadow-xl"
+              title="Filtrer par niveau d'intérêt"
+            >
+              <option value="">Tout intérêt</option>
+              {Object.entries(INTERETS).map(([val, it]) => (
+                <option key={val} value={val}>{it.emoji} {it.label}</option>
+              ))}
+              <option value="none">Pas encore qualifié</option>
+            </select>
+            {isSaas && (
+              <select
+                value={filters.effectif}
+                onChange={(e) => handleFilterChange('effectif', e.target.value)}
+                className="input-field py-1.5 text-sm bg-surface-900 shadow-xl"
+                title="Filtrer par nombre de salariés (tranche officielle INSEE)"
+              >
+                <option value="">Tous effectifs</option>
+                <option value="10">10 à 19 salariés</option>
+                <option value="20">20 à 49 salariés</option>
+                <option value="50">50 à 99 salariés</option>
+                <option value="100plus">100 salariés et +</option>
+                <option value="none">Effectif inconnu</option>
+              </select>
+            )}
             <select 
               value={filters.statut} 
               onChange={(e) => handleFilterChange('statut', e.target.value)}

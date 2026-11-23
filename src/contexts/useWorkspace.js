@@ -3,7 +3,8 @@ import { getStatutConfig } from '../utils/constants';
 
 export const WorkspaceContext = createContext({ offre: 'site_web', setOffre: () => {}, isSaas: false });
 
-// Espace actif ('site_web' | 'saas') et fonction pour en changer
+// Espace actif ('site_web' | 'saas' | 'appconduc') et fonction pour en changer.
+// isSaas = espace de vente de logiciel (SaaS PlanniBat ou AppConduc)
 export const useWorkspace = () => useContext(WorkspaceContext);
 
 // Libellés / couleurs / ordre des statuts du pipeline de l'espace courant

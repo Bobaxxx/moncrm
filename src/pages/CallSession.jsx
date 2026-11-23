@@ -14,7 +14,7 @@ import {
   Repeat
 } from 'lucide-react';
 import { getCallSession, updatePlanningTask } from '../services/api';
-import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS } from '../utils/constants';
+import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS, INTERETS } from '../utils/constants';
 import { useStatuts } from '../contexts/useWorkspace';
 import { CLASSEMENTS, formatEffectif } from '../components/database/ProspectTable';
 
@@ -74,6 +74,16 @@ function ProspectLine({ p, isSaas }) {
         {p.nom_entreprise}
       </Link>
       {isSaas && <ClassementBadge value={p.classement} />}
+      {p.interet && INTERETS[p.interet] && (
+        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${INTERETS[p.interet].active}`}>
+          {INTERETS[p.interet].emoji} {INTERETS[p.interet].label}
+        </span>
+      )}
+      {p.statut === 'perdu' && (
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border bg-rose-500/10 text-rose-300 border-rose-500/30">
+          Abandonné{p.raison_perte ? ` · ${p.raison_perte}` : ''}
+        </span>
+      )}
       {isSaas && p.effectif && (
         <span className="text-[10px] font-semibold text-surface-400 bg-surface-900 border border-surface-800 px-1.5 py-0.5 rounded">
           {formatEffectif(p.effectif)} sal.
@@ -222,6 +232,14 @@ export default function CallSession() {
             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-xs font-bold">
               <PhoneCall className="w-3.5 h-3.5" /> {data.session.length} prospect{data.session.length > 1 ? 's' : ''} appelé{data.session.length > 1 ? 's' : ''}
             </span>
+            {Object.entries(INTERETS).map(([val, it]) => {
+              const n = data.session.filter(p => p.interet === val).length;
+              return n > 0 && (
+                <span key={val} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold ${it.active}`}>
+                  {it.emoji} {it.label} · {n}
+                </span>
+              );
+            })}
             {groups.map(({ result, items }) => {
               const c = STATUT_APPEL_COLORS[result] || STATUT_APPEL_COLORS.a_appeler;
               return (

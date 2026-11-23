@@ -109,14 +109,23 @@ export const SAAS_STATUT_ORDER = [
 
 export const OFFRE_LABELS = {
   site_web: 'Site web',
-  saas: 'SaaS'
+  saas: 'SaaS',
+  appconduc: 'AppConduc'
+};
+
+// Dossier proposé par défaut à l'import, par espace
+const DEFAULT_CATEGORIES = {
+  site_web: 'Serrurier',
+  saas: 'BTP',
+  appconduc: 'Charpente métallique'
 };
 
 // Configuration complète du pipeline pour un espace donné
 export const getStatutConfig = (offre) => {
-  const isSaas = offre === 'saas';
+  // AppConduc fonctionne comme le SaaS (même pipeline), avec ses propres données
+  const isSaas = offre === 'saas' || offre === 'appconduc';
   return {
-    offre: isSaas ? 'saas' : 'site_web',
+    offre: isSaas ? offre : 'site_web',
     isSaas,
     STATUT_LABELS: isSaas ? SAAS_STATUT_LABELS : STATUT_LABELS,
     STATUT_COLORS: isSaas ? SAAS_STATUT_COLORS : STATUT_COLORS,
@@ -124,6 +133,23 @@ export const getStatutConfig = (offre) => {
     // Statut "client gagné"
     SIGNED_STATUT: isSaas ? 'abonne' : 'client_signe',
     // Dossier proposé par défaut à l'import
-    DEFAULT_CATEGORY: isSaas ? 'BTP' : 'Serrurier'
+    DEFAULT_CATEGORY: DEFAULT_CATEGORIES[offre] || DEFAULT_CATEGORIES.site_web
   };
 };
+
+// Niveau d'intérêt noté après un appel où le prospect a répondu
+export const INTERETS = {
+  chaud: { emoji: '🔥', label: 'Chaud', hint: 'Veut voir une démo / tester', active: 'bg-orange-500/20 text-orange-300 border-orange-500/50' },
+  tiede: { emoji: '🌤', label: 'Tiède', hint: 'Curieux mais pas maintenant', active: 'bg-amber-500/15 text-amber-200 border-amber-500/40' },
+  froid: { emoji: '❄️', label: 'Froid', hint: 'Pas convaincu, à relancer plus tard', active: 'bg-sky-500/15 text-sky-300 border-sky-500/40' }
+};
+
+// Raisons d'abandon proposées en un clic (enregistrées dans raison_perte)
+export const RAISONS_PERTE = [
+  "Pas d'équipe / trop petit",
+  'A déjà un outil',
+  'Pas intéressé',
+  'Pas le bon moment',
+  'Trop cher',
+  'Mauvais métier'
+];

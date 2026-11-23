@@ -32,9 +32,94 @@ import {
   createPlanningTask,
   getFolders
 } from '../services/api';
-import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS } from '../utils/constants';
+import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS, SAAS_STATUT_LABELS, INTERETS, RAISONS_PERTE } from '../utils/constants';
 import { useStatuts } from '../contexts/useWorkspace';
 import { CLASSEMENTS, ClassementPicker, formatEffectif, prospectInfoText } from '../components/database/ProspectTable';
+
+// Suites possibles après un appel (espace SaaS) : met à jour le statut pipeline
+const SUITES_SAAS = [
+  { key: 'demo', label: '📅 Démo à caler', statut: 'echange_qualifie' },
+  { key: 'mail', label: '✉️ Mail à envoyer' },
+  { key: 'essai', label: '🚀 Essai lancé', statut: 'essai_actif' },
+  { key: 'rappel', label: '⏰ Rappeler plus tard' },
+  { key: 'abandon', label: '🚫 Abandonné', statut: 'perdu' }
+];
+
+// Panneau de qualification affiché sous la fiche après un appel
+function QualificationPanel({ prospect, isSaas, onChange, onSchedule, onMail, mailQueued, onClose }) {
+  const chip = (active, activeCls) => `px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${active
+    ? activeCls
+    : 'bg-surface-900 border-surface-800 text-surface-400 hover:text-surface-100 hover:border-surface-600'}`;
+  const isLost = prospect.statut === 'perdu';
+
+  return (
+    <div className="mt-4 pt-4 border-t border-surface-800/70 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[10px] font-bold text-surface-400 uppercase tracking-widest">Qualifier ce prospect</p>
+        <button onClick={onClose} className="p-1 rounded-lg text-surface-500 hover:text-white hover:bg-surface-800" title="Fermer">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Intérêt */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-surface-500 w-16">Intérêt</span>
+        {Object.entries(INTERETS).map(([val, it]) => (
+          <button
+            key={val}
+            title={it.hint}
+            onClick={() => onChange({ interet: prospect.interet === val ? null : val })}
+            className={chip(prospect.interet === val, it.active)}
+          >
+            {it.emoji} {it.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Suite (pipeline) */}
+      {isSaas && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-surface-500 w-16">Suite</span>
+          {SUITES_SAAS.map(s => (
+            <button
+              key={s.key}
+              onClick={() => {
+                if (s.key === 'rappel') onSchedule();
+                else if (s.key === 'mail') onMail();
+                else onChange({ statut: s.statut });
+              }}
+              disabled={s.key === 'mail' && mailQueued}
+              title={s.key === 'mail' ? (mailQueued ? 'Déjà ajouté à tes tâches du jour' : 'Ajoute "Envoyer un mail" dans tes tâches du jour') : undefined}
+              className={chip((s.statut && prospect.statut === s.statut) || (s.key === 'mail' && mailQueued),
+                s.key === 'abandon' ? 'bg-rose-500/20 text-rose-300 border-rose-500/50' : 'bg-primary-500/20 text-primary-200 border-primary-500/50')}
+            >
+              {s.key === 'mail' && mailQueued ? '✉️ Mail ajouté aux tâches ✓' : s.label}
+            </button>
+          ))}
+          {prospect.statut && SAAS_STATUT_LABELS[prospect.statut] && (
+            <span className="text-[11px] text-surface-500 italic">Pipeline : {SAAS_STATUT_LABELS[prospect.statut]}</span>
+          )}
+        </div>
+      )}
+
+      {/* Raison d'abandon */}
+      {isSaas && isLost && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-surface-500 w-16">Raison</span>
+          {RAISONS_PERTE.map(r => (
+            <button
+              key={r}
+              onClick={() => onChange({ raison_perte: prospect.raison_perte === r ? null : r })}
+              className={chip(prospect.raison_perte === r, 'bg-rose-500/20 text-rose-300 border-rose-500/50')}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Saisie rapide d'un numéro pour un prospect qui n'en a pas
 function PhoneAdder({ onSave }) {
@@ -116,6 +201,10 @@ export default function Calls() {
   
   // Scheduler State
   const [schedulingProspect, setSchedulingProspect] = useState(null);
+  // Fiche dont le panneau "Qualifier" est ouvert
+  const [qualifyingId, setQualifyingId] = useState(null);
+  // Prospects pour lesquels une tâche "mail à envoyer" a été créée pendant cette session
+  const [mailQueuedIds, setMailQueuedIds] = useState(() => new Set());
   const [callbackDate, setCallbackDate] = useState('');
   const [callbackTime, setCallbackTime] = useState('09:00');
   const [callbackNotes, setCallbackNotes] = useState('');
@@ -309,6 +398,45 @@ export default function Calls() {
     }
   };
 
+  // Qualification après appel (intérêt, suite pipeline, raison d'abandon)
+  const handleQualify = async (prospect, changes) => {
+    const previous = Object.fromEntries(Object.keys(changes).map(k => [k, prospect[k] ?? null]));
+    setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, ...changes } : p));
+    try {
+      await updateProspect(prospect.id, changes);
+    } catch (err) {
+      console.error('Error qualifying prospect:', err);
+      setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, ...previous } : p));
+      alert("Impossible d'enregistrer : " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  // Suite "Mail à envoyer" : crée une tâche dans les Tâches du jour, liée au prospect
+  const handleMailToSend = async (prospect) => {
+    if (mailQueuedIds.has(prospect.id)) return;
+    const pad = (n) => String(n).padStart(2, '0');
+    const now = new Date();
+    const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    setMailQueuedIds(prev => new Set(prev).add(prospect.id));
+    try {
+      await createPlanningTask({
+        titre: `✉️ Envoyer un mail à ${prospect.nom_entreprise}${prospect.dirigeant ? ` (${prospect.dirigeant})` : ''}`,
+        description: [prospect.telephone, prospect.notes].filter(Boolean).join('\n'),
+        type: 'todo',
+        date: today,
+        heure_debut: null,
+        heure_fin: null,
+        prospect_id: prospect.id,
+        couleur: '#8b5cf6',
+        completed: false
+      });
+    } catch (err) {
+      console.error('Error creating mail task:', err);
+      setMailQueuedIds(prev => { const next = new Set(prev); next.delete(prospect.id); return next; });
+      alert("Impossible d'ajouter la tâche : " + (err.response?.data?.error || err.message));
+    }
+  };
+
   // Update call status
   const handleUpdateStatus = async (prospect, newStatus) => {
     try {
@@ -316,6 +444,9 @@ export default function Calls() {
       setProspects(prev => prev.map(p => p.id === prospect.id ? { ...p, statut_appel: newStatus } : p));
       
       await updateProspect(prospect.id, { statut_appel: newStatus });
+
+      // Le prospect a répondu : on propose de le qualifier tout de suite
+      if (newStatus === 'appele' || newStatus === 'pas_interesse') setQualifyingId(prospect.id);
       
       // Refresh daily calls count from API
       loadStats();
@@ -598,10 +729,8 @@ export default function Calls() {
                   const statusColorObj = STATUT_APPEL_COLORS[prospect.statut_appel || 'a_appeler'] || STATUT_APPEL_COLORS.a_appeler;
                   
                   return (
-                    <div 
-                      key={prospect.id} 
-                      className="glass-card p-5 hover:border-surface-800 transition-all group flex flex-col md:flex-row gap-5 items-start md:items-stretch"
-                    >
+                    <div key={prospect.id} className="glass-card p-5 hover:border-surface-800 transition-all group">
+                    <div className="flex flex-col md:flex-row gap-5 items-start md:items-stretch">
                       {/* Left Side: Enterprise Details */}
                       <div className="flex-1 min-w-0 space-y-2.5">
                         <div className="flex items-start justify-between gap-3">
@@ -782,7 +911,28 @@ export default function Calls() {
                           <span>❌ Pas intéressé</span>
                           <X className="w-3.5 h-3.5" />
                         </button>
+
+                        <button
+                          onClick={() => setQualifyingId(qualifyingId === prospect.id ? null : prospect.id)}
+                          className="w-full py-1.5 px-3 rounded-xl text-[11px] font-bold text-surface-400 hover:text-white hover:bg-surface-800 flex items-center justify-center gap-1.5 transition-all"
+                        >
+                          {prospect.interet && INTERETS[prospect.interet] ? `${INTERETS[prospect.interet].emoji} ${INTERETS[prospect.interet].label} · ` : ''}
+                          {qualifyingId === prospect.id ? 'Fermer la qualification' : 'Qualifier'}
+                        </button>
                       </div>
+                    </div>
+
+                    {qualifyingId === prospect.id && (
+                      <QualificationPanel
+                        prospect={prospect}
+                        isSaas={isSaas}
+                        onChange={(changes) => handleQualify(prospect, changes)}
+                        onSchedule={() => openScheduler(prospect)}
+                        onMail={() => handleMailToSend(prospect)}
+                        mailQueued={mailQueuedIds.has(prospect.id)}
+                        onClose={() => setQualifyingId(null)}
+                      />
+                    )}
                     </div>
                   );
                 })}

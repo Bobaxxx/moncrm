@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStatuts } from '../../contexts/useWorkspace';
-import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS } from '../../utils/constants';
+import { STATUT_APPEL_COLORS, STATUT_APPEL_LABELS, INTERETS } from '../../utils/constants';
 
 // Libellé affiché quand la recherche automatique n'a pas abouti
 const ENRICH_FAIL_LABEL = {
@@ -200,6 +200,7 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[150px]">Téléphone</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[120px]">Statut</th>
               <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[140px]">Appel</th>
+              <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[120px]">Intérêt</th>
               {isSaas && <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[110px]">Note</th>}
               {isSaas && <th className="px-4 py-3 font-semibold text-surface-400 uppercase text-[10px] tracking-wider w-[90px]">Effectif</th>}
               <th className="px-4 py-3 font-semibold text-violet-400/80 uppercase text-[10px] tracking-wider w-[100px]">AppConduc</th>
@@ -356,6 +357,23 @@ export default function ProspectTable({ prospects, onUpdate, onBulkUpdate, onDel
                         </select>
                       );
                     })()}
+                  </td>
+
+                  {/* Intérêt après appel */}
+                  <td className="px-4 py-3">
+                    <select
+                      value={p.interet || ''}
+                      onChange={(e) => onUpdate(p.id, { interet: e.target.value || null })}
+                      title={p.raison_perte ? `Raison d'abandon : ${p.raison_perte}` : "Niveau d'intérêt après appel"}
+                      className={`text-[11px] font-bold rounded-lg border px-2 py-1 cursor-pointer outline-none ${p.interet && INTERETS[p.interet]
+                        ? INTERETS[p.interet].active
+                        : 'bg-transparent text-surface-600 border-surface-800'}`}
+                    >
+                      <option value="" className="bg-surface-900 text-surface-100">—</option>
+                      {Object.entries(INTERETS).map(([val, it]) => (
+                        <option key={val} value={val} className="bg-surface-900 text-surface-100">{it.emoji} {it.label}</option>
+                      ))}
+                    </select>
                   </td>
 
                   {/* Note de classement (SaaS) */}

@@ -56,7 +56,7 @@ const SERIES = {
 
 export default function Analytics() {
   const { offre, isSaas } = useWorkspace();
-  const series = SERIES[offre] || SERIES.site_web;
+  const series = SERIES[offre] || (isSaas ? SERIES.saas : SERIES.site_web);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30); // Default to 30 for calendar

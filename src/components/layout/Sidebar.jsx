@@ -21,15 +21,23 @@ import {
   PhoneCall,
   ClipboardList,
   Globe,
-  Boxes
+  Boxes,
+  HardHat
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWorkspace } from '../../contexts/useWorkspace';
 
 const WORKSPACES = [
   { value: 'site_web', label: 'Site web', icon: Globe },
-  { value: 'saas', label: 'SaaS', icon: Boxes }
+  { value: 'saas', label: 'SaaS', icon: Boxes },
+  { value: 'appconduc', label: 'AppConduc', icon: HardHat }
 ];
+
+const WORKSPACE_ACTIVE = {
+  site_web: 'bg-primary-500/15 text-primary-300 border border-primary-500/30',
+  saas: 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30',
+  appconduc: 'bg-violet-500/15 text-violet-300 border border-violet-500/30'
+};
 
 const getNavItems = (isSaas) => [
   { path: '/dashboard', icon: LayoutDashboard, label: 'Tableau de bord', desc: 'Vue d\'ensemble' },
@@ -75,7 +83,7 @@ export default function Sidebar() {
       {/* Sélecteur d'espace */}
       <div className="px-6 pt-2">
         <p className="text-[10px] uppercase font-bold text-surface-600 tracking-widest mb-2 ml-1">Espace</p>
-        <div className="grid grid-cols-2 gap-1 p-1 bg-surface-900/60 border border-surface-800/60 rounded-2xl" role="tablist" aria-label="Espace de travail">
+        <div className="grid grid-cols-3 gap-1 p-1 bg-surface-900/60 border border-surface-800/60 rounded-2xl" role="tablist" aria-label="Espace de travail">
           {WORKSPACES.map(({ value, label, icon: Icon }) => {
             const active = offre === value;
             return (
@@ -84,9 +92,9 @@ export default function Sidebar() {
                 role="tab"
                 aria-selected={active}
                 onClick={() => !active && setOffre(value)}
-                className={`flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all
+                className={`flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[11px] font-bold transition-all
                   ${active
-                    ? (value === 'saas' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-primary-500/15 text-primary-300 border border-primary-500/30')
+                    ? WORKSPACE_ACTIVE[value]
                     : 'text-surface-500 hover:text-surface-200 border border-transparent'}`}
               >
                 <Icon className="w-3.5 h-3.5" />

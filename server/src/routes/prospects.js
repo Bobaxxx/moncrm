@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { supabase } from '../db/database.js';
-import { getOffre, PIPELINE_STATUTS, SIGNED_STATUT } from '../utils/offre.js';
+import { isSaasLike, getOffre, PIPELINE_STATUTS, SIGNED_STATUT } from '../utils/offre.js';
 
 const router = Router();
 
 // GET /api/prospects - Liste avec filtres et pagination
 router.get('/', async (req, res) => {
-  const { search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id, has_phone, classement, appconduc } = req.query;
+  const { search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id, has_phone, classement, appconduc, interet, effectif } = req.query;
   const offre = getOffre(req);
   console.log('GET /api/prospects - Filters:', { offre, search, statut, statut_appel, departement, source, category, page, limit, nopagination, import_id });
 
@@ -57,6 +57,20 @@ router.get('/', async (req, res) => {
     query = query.is('classement', null);
   } else if (['A', 'B', 'C'].includes(classement)) {
     query = query.eq('classement', classement);
+  }
+  // Tranche d'effectif (format INSEE "Entre 10 et 19 salariés")
+  if (effectif === '100plus') {
+    // 3 chiffres ou plus : "Entre 100 et 199", "Entre 250 et 499", "Entre 1000 et 1999"...
+    query = query.or('effectif.ilike.Entre ___ et%,effectif.ilike.Entre ____ et%');
+  } else if (effectif === 'none') {
+    query = query.is('effectif', null);
+  } else if (/^\d+$/.test(effectif || '')) {
+    query = query.ilike('effectif', `Entre ${effectif} et%`);
+  }
+  if (interet === 'none') {
+    query = query.is('interet', null);
+  } else if (['chaud', 'tiede', 'froid'].includes(interet)) {
+    query = query.eq('interet', interet);
   }
   if (appconduc === 'true') {
     query = query.eq('appconduc', true);
@@ -184,7 +198,7 @@ router.get('/stats', async (req, res) => {
     const dayStart = `${today}T00:00:00`;
     const dayEnd = `${today}T23:59:59`;
 
-    if (offre === 'saas') {
+    if (isSaasLike(offre)) {
       const [contactsToday, contactsTotal, demosToday, demosTotal, abonnesTotal] = await Promise.all([
         countStatusLogs(offre, 'visite_ou_contact_tente', dayStart, dayEnd),
         countStatusLogs(offre, 'visite_ou_contact_tente'),
@@ -250,7 +264,7 @@ const EDITABLE_FIELDS = [
   'nom_entreprise', 'telephone', 'adresse', 'url_site', 'departement', 'statut', 'statut_appel',
   'notes', 'maquette_phone', 'siren',
   'ville', 'code_postal', 'activite', 'code_naf', 'effectif', 'dirigeant',
-  'url_fiche', 'linkedin_url', 'raison_perte', 'classement', 'appconduc',
+  'url_fiche', 'linkedin_url', 'raison_perte', 'classement', 'appconduc', 'interet',
   'contrat_type', 'has_maintenance', 'montant_mensuel'
 ];
 

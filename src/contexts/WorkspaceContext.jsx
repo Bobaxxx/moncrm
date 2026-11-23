@@ -10,7 +10,7 @@ export function WorkspaceProvider({ children }) {
     setOffreState(next);
   }, []);
 
-  const value = useMemo(() => ({ offre, setOffre, isSaas: offre === 'saas' }), [offre, setOffre]);
+  const value = useMemo(() => ({ offre, setOffre, isSaas: offre !== 'site_web' }), [offre, setOffre]);
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }

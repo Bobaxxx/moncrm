@@ -5,13 +5,15 @@ import {
   getProvider, PROVIDER_LABELS, NOT_CONFIGURED_MESSAGE
 } from '../services/phoneEnrichment.js';
 import { startJob, getJob, getCurrentJob, cancelJob, countTargets } from '../services/enrichmentJobs.js';
+import { getOffre } from '../utils/offre.js';
 
 const router = Router();
 
 const NOT_CONFIGURED = { error: NOT_CONFIGURED_MESSAGE };
 
 // Filtre commun (sélection de la page Base de données)
-const readFilter = (src = {}) => ({
+const readFilter = (src = {}, req) => ({
+  offre: req ? getOffre(req) : 'saas',
   import_id: src.import_id || undefined,
   category: src.category || undefined,
   ids: Array.isArray(src.ids) ? src.ids : undefined,
@@ -32,7 +34,7 @@ router.get('/status', (req, res) => {
 // GET /api/enrichment/phones/pending - Nombre de leads SaaS à enrichir pour un filtre
 router.get('/phones/pending', async (req, res) => {
   try {
-    const count = await countTargets(readFilter(req.query));
+    const count = await countTargets(readFilter(req.query, req));
     res.json({ count });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -43,7 +45,7 @@ router.get('/phones/pending', async (req, res) => {
 router.post('/phones/bulk', async (req, res) => {
   if (!isEnrichmentConfigured()) return res.status(503).json(NOT_CONFIGURED);
   try {
-    const job = await startJob(readFilter(req.body), 'Enrichissement des téléphones manquants');
+    const job = await startJob(readFilter(req.body, req), 'Enrichissement des téléphones manquants');
     res.json(job);
   } catch (error) {
     res.status(error.status || 500).json({ error: error.message, job: error.job });

@@ -26,7 +26,7 @@ function StatCard({ icon: Icon, tone, value, label, sub, badge }) {
 }
 
 export default function Dashboard() {
-  const { STATUT_LABELS, STATUT_COLORS, isSaas } = useStatuts();
+  const { STATUT_LABELS, STATUT_COLORS, isSaas, offre } = useStatuts();
   const [stats, setStats] = useState(null);
   const [imports, setImports] = useState([]);
   const [todayTasks, setTodayTasks] = useState([]);
@@ -71,8 +71,8 @@ export default function Dashboard() {
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-surface-50">Dashboard{isSaas ? ' SaaS' : ''}</h1>
-        <p className="text-surface-500 mt-2">{isSaas ? 'Prospection PlanniBat : du dépôt à l\'abonnement' : 'Vue d\'ensemble de votre prospection'}</p>
+        <h1 className="text-3xl font-bold text-surface-50">Dashboard{offre === 'appconduc' ? ' AppConduc' : isSaas ? ' SaaS' : ''}</h1>
+        <p className="text-surface-500 mt-2">{offre === 'appconduc' ? 'Prospection AppConduc : charpente métallique' : isSaas ? 'Prospection PlanniBat : du dépôt à l\'abonnement' : 'Vue d\'ensemble de votre prospection'}</p>
       </div>
 
       {/* Quick actions */}

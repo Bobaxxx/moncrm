@@ -1,7 +1,7 @@
-// Espace de travail courant ('site_web' | 'saas'), lu par l'intercepteur Axios
+// Espace de travail courant ('site_web' | 'saas' | 'appconduc'), lu par l'intercepteur Axios
 // et mémorisé dans le navigateur pour retrouver le même espace au rechargement.
 
-export const OFFRES = ['site_web', 'saas'];
+export const OFFRES = ['site_web', 'saas', 'appconduc'];
 const STORAGE_KEY = 'moncrm_offre';
 
 const readStored = () => {
